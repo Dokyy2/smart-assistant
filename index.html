@@ -9,10 +9,12 @@
 :root {
     --primary-color: #2563eb;
     --accent-color: #3b82f6;
-    --bg-dark: #0f172a;
-    --glass-bg: rgba(255, 255, 255, 0.92);
+    --danger-color: #ef4444;
+    --glass-bg: rgba(255, 255, 255, 0.95);
 }
+
 * { box-sizing: border-box; }
+
 body {
     margin: 0; direction: rtl; font-family: 'Cairo', sans-serif;
     background: linear-gradient(-45deg, #0f172a, #1e293b, #2563eb, #1e293b);
@@ -21,11 +23,13 @@ body {
     display: flex; align-items: center; justify-content: center;
     height: 100vh; overflow: hidden;
 }
+
 @keyframes gradientBG {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
 .chat-container {
     width: 100%; max-width: 450px; height: 90vh;
     background: var(--glass-bg); backdrop-filter: blur(15px);
@@ -33,199 +37,314 @@ body {
     overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.3);
 }
+
 .header {
     padding: 20px; text-align: center; background: white;
     border-bottom: 1px solid rgba(0,0,0,0.05); font-weight: 700;
-    color: #1e293b; font-size: 1.1rem; position: relative;
+    color: #1e293b; font-size: 1.1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
+
 .chat-area {
     flex: 1; overflow-y: auto; padding: 20px;
     display: flex; flex-direction: column; gap: 15px;
     background: rgba(248, 250, 252, 0.4);
+    scroll-behavior: smooth;
 }
+
 .msg {
     max-width: 85%; padding: 14px 18px; border-radius: 20px;
     line-height: 1.6; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    animation: fadeIn 0.3s ease;
+    animation: slideIn 0.4s ease-out forwards;
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.bot-msg { background: white; color: #334155; align-self: flex-start; border-bottom-right-radius: 5px; }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.bot-msg { background: white; color: #334155; align-self: flex-start; border-bottom-right-radius: 5px; border: 1px solid #f1f5f9; }
 .user-msg { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; align-self: flex-end; border-bottom-left-radius: 5px; }
+
 .btn-link {
-    display: block; margin-top: 12px; background: white; color: var(--primary-color);
-    text-decoration: none; padding: 10px; border-radius: 12px; text-align: center;
+    display: block; margin: 12px 0; background: white; color: var(--primary-color);
+    text-decoration: none; padding: 12px; border-radius: 15px; text-align: center;
     font-weight: 700; border: 2px solid var(--primary-color); transition: 0.3s;
 }
-.btn-link:hover { background: var(--primary-color); color: white; transform: translateY(-2px); }
+.btn-link:hover { background: var(--primary-color); color: white; transform: scale(1.02); }
+
+.option-btn {
+    margin: 6px 0; padding: 12px 15px; border-radius: 15px;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    background: white; color: #1e293b; cursor: pointer;
+    font-family: 'Cairo'; font-weight: 600; transition: 0.3s;
+    width: 100%; text-align: right;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+.option-btn:hover {
+    background: #f0f7ff; border-color: var(--primary-color);
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.3); transform: translateX(-5px);
+}
+
+.all-services-btn {
+    margin-top: 15px; padding: 14px; border-radius: 18px; border: none;
+    background: linear-gradient(135deg, #f87171, #ef4444, #b91c1c);
+    color: white; cursor: pointer; font-family: 'Cairo'; font-weight: 700;
+    width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    transition: 0.3s; animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 .input-group { display: flex; padding: 20px; background: white; gap: 12px; }
 input { flex: 1; padding: 14px 20px; border-radius: 15px; border: 2px solid #f1f5f9; outline: none; font-family: inherit; }
-button { background: var(--primary-color); color: white; border: none; border-radius: 15px; padding: 0 25px; cursor: pointer; font-weight: 700; }
+button#sendBtn { background: var(--primary-color); color: white; border: none; border-radius: 15px; padding: 0 25px; cursor: pointer; font-weight: 700; }
+
 .typing { display: flex; gap: 4px; padding: 15px 20px !important; }
 .dot { width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; animation: blink 1.4s infinite; }
 .dot:nth-child(2) { animation-delay: 0.2s; }
 .dot:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-.chat-area::-webkit-scrollbar { width: 4px; }
-.chat-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 </style>
 </head>
 <body>
+
 <div class="chat-container">
-    <div class="header">🤖 المساعد الرقمي - الدمرداش والوايلي</div>
+    <div class="header">🤖 المساعد الذكي - منطقة الوايلي</div>
     <div id="chatArea" class="chat-area">
         <div class="msg bot-msg">أهلاً بك 👋<br>أنا هنا لمساعدتك في الوصول لخدمات مكتب صحة الدمرداش ومنطقة الوايلي. عن ماذا تبحث اليوم؟</div>
     </div>
     <div class="input-group">
-        <input id="userInput" placeholder="اسأل عن المواليد، التطعيمات، أو الطوارئ..." autocomplete="off">
-        <button onclick="handleSend()">إرسال</button>
+        <input id="userInput" placeholder="اكتب سؤالك هنا..." autocomplete="off">
+        <button id="sendBtn" onclick="handleSend()">إرسال</button>
     </div>
 </div>
 
 <script>
+// ==========================================
+// 1️⃣ قاعدة البيانات (Services Database)
+// ==========================================
 const services = {
     "دليل الخدمات الكامل": {
-        keywords: ["دليل", "خدمات", "قائمة", "كتيب", "بيان", "اجراءات", "فهرس", "كل الخدمات", "بتعملوا ايه", "بتقدموا ايه", "عايز اعرف الخدمات", "نشاطكم", "بتوع ايه", "ايه اللي عندكم", "دليلل", "خدمت", "خدات", "الخدنات", "قائمه", "قايمه", "قيمه", "فهرص", "دليبل", "جدول", "ورق", "نظامكم", "طريقة", "خطوات", "عاوز افهم", "عايز افهم", "مكتب الصحة بيعمل ايه", "دليل", "المنطقة الطبية"],
+        keywords: [
+            "دليل", "خدمات", "قائمة", "كتيب", "بيان", "اجراءات", "فهرس", "كل الخدمات", 
+            "بتعملوا ايه", "بتقدموا ايه", "عايز اعرف الخدمات", "نشاطكم", "بتوع ايه", 
+            "ايه اللي عندكم", "دليلل", "خدمت", "خدات", "الخدنات", "قائمه", "قايمه", 
+            "قيمه", "فهرص", "دليبل", "جدول", "ورق", "نظامكم", "طريقة", "خطوات", 
+            "عاوز افهم", "عايز افهم", "مكتب الصحة بيعمل ايه", "المنطقة الطبية"
+        ],
         link: "https://drive.google.com/file/d/1Vgg5HS4-OeyBYbDJtl7jxRPZU8C2r_8R/view?usp=drive_link",
-        msg: "اتفضل.. ده الدليل الكامل فيه كل حاجة بنعملها في مكتب الصحة ومنطقة الوايلي، هتلاقي فيه كل اللي بتحتاجه بالتفصيل:"
+        msg: "اتفضل.. ده الدليل الكامل فيه كل حاجة بنعملها في مكتب الصحة ومنطقة الوايلي بالتفصيل:"
     },
+
     "المستشفيات التابعة": {
-        keywords: ["مستشفى", "مستشفيات", "المراكز الطبية", "وحدة صحية", "تخصصات", "مواعيد العمل", "قريب مني", "دكتور", "كشف", "عيادة", "مستشفي", "اروح فين", "اقرب حاجة", "كشف رخيص", "دكاترة", "تعبان", "موجوع", "مستشفياتت", "مستشفا", "مشتشفى", "دكتورر", "عياده", "عنواين", "لوكيشن", "لوكيشنات", "موعيد", "المركز الطبي", "مستشفى الدمرداش", "مستشفيات الوايلي", "الحكومي", "المجاني", "كشف جلدية", "كشف اطفال", "عنوان المستشفى", "شغالين لحد امتى"],
+        keywords: [
+            "مستشفى", "مستشفيات", "المراكز الطبية", "وحدة صحية", "تخصصات", "مواعيد العمل", 
+            "قريب مني", "دكتور", "كشف", "عيادة", "مستشفي", "اروح فين", "اقرب حاجة", 
+            "كشف رخيص", "دكاترة", "تعبان", "موجوع", "مستشفياتت", "مستشفا", "مشتشفى", 
+            "دكتورر", "عياده", "عنواين", "لوكيشن", "لوكيشنات", "موعيد", "المركز الطبي", 
+            "مستشفى الدمرداش", "مستشفيات الوايلي", "الحكومي", "المجاني", "كشف جلدية", 
+            "كشف اطفال", "عنوان المستشفى", "شغالين لحد امتى"
+        ],
         link: "https://drive.google.com/file/d/1MELxONHRA8vLlynKibvUyzlb3aH-by5U/view?usp=drive_link",
         msg: "اهلا وسهلا .. مكاتب الصحة ومراكز الرعاية في الخدمة، هنا هتلاقي كل الاماكن التابعة لينا، بمواعيد العمل ومكانهم بالظبط على الخريطة (اللوكيشن):"
     },
+
     "تسجيل المواليد": {
-        keywords: ["ميلاد", "مولود", "الولادة", "الولاده", "طفل", "نونو", "بيبي", "خلفنا", "رزقنا", "قيد", "اضافة", "إضافة", "وضعت", "ولدت", "ولادة", "جبت عيل", "جالنا نونو", "لسه والدين", "مراتي ولدت", "قامت بالسلامة", "المولود الجديد", "شهادة ميلاد", "شهاده ميلاد", "اخطار ولادة", "إخطار ولادة", "تبليغ ولادة", "ورق المولود", "اسم الواد", "اكتب اسم", "اسم البت", "دفتر الصحة", "ميلتاد", "ميلادد", "مولودد", "مبلاد", "مولوذ", "والدة", "والده", "ام", "اب", "تجيل", "تسبيل", "سهاة", "شهاذة", "شهادت", "الواد", "البت", "العيل", "البيبي", "عايز اسمي", "تسجيل الواد", "تسجيل البت"],
+        keywords: [
+            "ميلاد", "مولود", "الولادة", "الولاده", "طفل", "نونو", "بيبي", "خلفنا", 
+            "رزقنا", "قيد", "اضافة", "إضافة", "وضعت", "ولدت", "ولادة", "جبت عيل", 
+            "جالنا نونو", "لسه والدين", "مراتي ولدت", "قامت بالسلامة", "المولود الجديد", 
+            "شهادة ميلاد", "شهاده ميلاد", "اخطار ولادة", "إخطار ولادة", "تبليغ ولادة", 
+            "ورق المولود", "اسم الواد", "اكتب اسم", "اسم البت", "دفتر الصحة", "ميلتاد", 
+            "ميلادد", "مولودد", "مبلاد", "مولوذ", "والدة", "والده", "ام", "اب", 
+            "تجيل", "تسبيل", "سهاة", "شهاذة", "شهادت", "الواد", "البت", "العيل", 
+            "البيبي", "عايز اسمي", "تسجيل الواد", "تسجيل البت"
+        ],
         link: "https://drive.google.com/file/d/1bvjnKzITfH2p3HZO4e1V8aJ-f2zSxj7I/view?usp=drive_link",
         msg: "ألف مبروك ما جالك.. يتربى في عزكم ويجعله قدم السعد! عشان تطلع شهادة الميلاد وتثبت المولود، دي الخطوات والورق المطلوب منك بالظبط:"
     },
+
     "تسجيل الوفيات": {
-        keywords: ["وفاة", "وفاه", "وفات", "مات", "توفى", "توفي", "توفاه", "المتوفي", "المتوفى", "ميت", "الميت", "الوفيات", "البقاء لله", "الدوام لله", "انتقل إلى الأمجاد السماوية", "انتقل للامجاد السماويه", "امجاد سماوية", "امجاد سماويه", "رقد على رجاء القيامة", "امجاد السماوية", "امجاد السماويه", "رقد على رجاء القيامه", "الراحة الأبدية", "الراحة الابدية", "تنيح", "تنيحت", "السموات", "طلعت روحه", "حالة وفاة", "تصريح دفن", "تصريح الدفن", "ورق الدفن", "اكرام الميت", "إكرام الميت", "تبليغ وفاة", "شهادة وفاة", "شهاده وفاه", "عايز أدفن", "عايزه ادفن", "الترب", "المقابر", "المدافن", "صندوق", "غسل", "تجهيز", "ماتت", "اتوفى", "الجنازة", "الجنازه", "وفاةة", "توفا", "وفا", "تسرير دفن", "شهاذة وفاة", "سهاة وفاه", "ماتتت", "شهادت وفاه", "الدفنه", "الدفنة", "توفى إلى رحمة الله", "انتقل لرحمة الله", "توفى النهاردة", "عايز اخلص ورق الدفن"],
+        keywords: [
+            "وفاة", "وفاه", "وفات", "مات", "توفى", "توفي", "توفاه", "المتوفي", 
+            "المتوفى", "ميت", "الميت", "الوفيات", "البقاء لله", "الدوام لله", 
+            "انتقل إلى الأمجاد السماوية", "انتقل للامجاد السماويه", "امجاد سماوية", 
+            "امجاد سماويه", "رقد على رجاء القيامة", "امجاد السماوية", "امجاد السماويه", 
+            "رقد على رجاء القيامه", "الراحة الأبدية", "الراحة الابدية", "تنيح", 
+            "تنيحت", "السموات", "طلعت روحه", "حالة وفاة", "تصريح دفن", "تصريح الدفن", 
+            "ورق الدفن", "اكرام الميت", "إكرام الميت", "تبليغ وفاة", "شهادة وفاة", 
+            "شهاده وفاه", "عايز أدفن", "عايزه ادفن", "الترب", "المقابر", "المدافن", 
+            "صندوق", "غسل", "تجهيز", "ماتت", "اتوفى", "الجنازة", "الجنازه", "وفاةة", 
+            "توفا", "وفا", "تسرير دفن", "شهاذة وفاة", "سهاة وفاه", "ماتتت", "شهادت وفاه", 
+            "الدفنه", "الدفنة", "توفى إلى رحمة الله", "انتقل لرحمة الله", "توفى النهاردة", 
+            "عايز اخلص ورق الدفن"
+        ],
         link: "https://drive.google.com/file/d/1B7_pX-qX5X6Z3J9W7-J3-M8E5W_y8_vU/view?usp=drive_link",
         msg: "البقاء لله.. ربنا يصبركم ويرحم الفقيد ويسكنه فسيح جناته .. عشان نسهل عليكم الإجراءات في الوقت الصعب ده، دي خطوات استخراج تصريح الدفن وشهادة الوفاة والورق المطلوب:"
     },
+
     "تنمية الأسرة": {
-        keywords: ["تنظيم", "تنظيم الأسرة", "تنميه الاسره", "الوسيلة", "الوسيله", "وسيله", "وسيلة", "منع الحمل", "تحديد النسل", "اللولب", "البرشام", "الحقنة", "الحقنه", "اللزقة", "الكبسولة", "الكبسوله", "حبوب منع الحمل", "واقي ذكري", "واقى ذكرى", "الواقي", "الواقى", "شريط", "شريط برشام", "برشام الشريط", "حبوب منع", "تنطيم", "تنميه", "الوسيه", "برشام المنع", "حقنه المنع", "لولب", "كپسوله", "منع حمل", "واكي", "واقي ذكري", "واكي ذكري", "سريط", "شريت", "عايزة أركب", "عايزه اركب", "عايزة أمنع", "عاوزة أمنع", "عاوزه أمنع", "مش عايزة أخلف دلوقتي", "تأخير الحمل", "كشف نسا", "عيادة النسا", "وسيلة مضمونة", "متابعة الوسيلة", "شريط البرشام", "عايز واقي", "مش حامل", "بعد الولادة", "تنظيم خلفة", "دكتورة النسا", "مكتب الصحة تنظيم"],
+        keywords: [
+            "تنظيم", "تنظيم الأسرة", "تنميه الاسره", "الوسيلة", "الوسيله", "وسيله", 
+            "وسيلة", "منع الحمل", "تحديد النسل", "اللولب", "البرشام", "الحقنة", 
+            "الحقنه", "اللزقة", "الكبسولة", "الكبسوله", "حبوب منع الحمل", "واقي ذكري", 
+            "واقى ذكرى", "الواقي", "الواقى", "شريط", "شريط برشام", "برشام الشريط", 
+            "حبوب منع", "تنطيم", "تنميه", "الوسيه", "برشام المنع", "حقنة المنع", 
+            "لولب", "كپسوله", "منع حمل", "واكي", "واقي ذكري", "واكي ذكري", "سريط", 
+            "شريت", "عايزة أركب", "عايزه اركب", "عايزة أمنع", "عاوزة أمنع", "عاوزه أمنع", 
+            "مش عايزة أخلف دلوقتي", "تأخير الحمل", "كشف نسا", "عيادة النسا", 
+            "وسيلة مضمونة", "متابعة الوسيلة", "شريط البرشام", "عايز واقي", "مش حامل", 
+            "بعد الولادة", "تنظيم خلفة", "دكتورة النسا", "مكتب الصحة تنظيم"
+        ],
         link: "https://drive.google.com/file/d/1_IpgW0VgJwO9ngBtpCP1f2kHr33SUtGb/view?usp=drive_link",
         msg: "أهلاً بيكي.. مكاتبنا بتوفر لك سرية تامه وأمن وأحدث وسائل تنظيم الأسرة (زي اللولب، الحبوب، والواقي الذكري) بالمجان أو بأسعار رمزية. هنا هتلاقي كل الوسائل المتاحة:"
     },
+
     "التطعيمات": {
-        keywords: ["تطعيم", "تطعمات", "تطاعيم", "حقنة", "حقنه", "نقط", "شلل الأطفال", "شلل الاطفال", "جرعة", "تطعيمات", "الغدة", "الغده", "تحليل الكعب", "تحليل كعب الرجل", "عايز ابصمه", "ابصمه من كعب رجليه", "عينات", "عينة", "شكشك", "شكشكة", "يومين", "أول يوم", "شهرين", "أربع شهور", "4 شهور", "ست شهور", "6 شهور", "تسع شهور", "9 شهور", "سنة", "سنه", "سنة ونص", "18 شهر", "الدرن", "الكبد", "الكبد الوبائي", "خماسي", "ثلاثي", "سول", "الحصبة", "الحصبه", "ام ام ار", "تطعيم المدارس", "تتطعيم", "تطعم", "تحليل الكب", "القدة", "الغدةة", "كعب", "كعب الرجل", "تطاعين", "نقت", "حقنه ٤ شهور", "عايز أطعم الواد", "ميعاد الحقنة", "تأخرت في التطعيم", "كارت الصحة", "دفتر التطعيمات", "التمريض", "مكتب التطعيم"],
+        keywords: [
+            "تطعيم", "تطعمات", "تطاعيم", "حقنة", "حقنه", "نقط", "شلل الأطفال", 
+            "شلل الاطفال", "جرعة", "تطعيمات", "الغدة", "الغده", "تحليل الكعب", 
+            "تحليل كعب الرجل", "عايز ابصمه", "ابصمه من كعب رجليه", "عينات", "عينة", 
+            "شكشك", "شكشكة", "يومين", "أول يوم", "شهرين", "أربع شهور", "4 شهور", 
+            "ست شهور", "6 شهور", "تسع شهور", "9 شهور", "سنة", "سنه", "سنة ونص", 
+            "18 شهر", "الدرن", "الكبد", "الكبد الوبائي", "خماسي", "ثلاثي", "سول", 
+            "الحصبة", "الحصبه", "ام ام ار", "تطعيم المدارس", "تتطعيم", "تطعم", 
+            "تحليل الكب", "القدة", "الغدةة", "كعب", "كعب الرجل", "تطاعين", "نقت", 
+            "حقنه ٤ شهور", "عايز أطعم الواد", "ميعاد الحقنة", "تأخرت في التطعيم", 
+            "كارت الصحة", "دفتر التطعيمات", "التمريض", "مكتب التطعيم"
+        ],
         link: "https://drive.google.com/file/d/1ow8nktNnNExt09HKofaxeWNIMEwW9x5G/view?usp=drive_link",
         msg: "ربنا يبارك في عمره ويجعله من الذرية الصالحة.. التطعيمات هي درع الحماية لطفلك، ومكتبنا ملتزم بجدول وزارة الصحة من أول يوم ولادة لحد سنة ونصف. هنا هتلاقي المواعيد، وأنواع التطعيمات، وتفاصيل تحليل الغدة (كعب الرجل):"
     },
+
     "خدمات الطوارئ": {
-        keywords: ["طوارئ", "اجازة", "إجازة", "اجازه", "عطلة", "عطله", "رسمية", "المكتب مقفل", "المكتب قفل", "المكتب قافل", "يوم الجمعة", "يوم الجمعه", "يوم السبت", "يوم حد", "بعد الظهر", "الليل", "نبطشية", "نبطشيه", "شغالين النهاردة", "عيد الفطر", "عيد الاضحى", "العيد الكبير", "العيد الصغير", "الوقفة", "الوقفه", "شم النسيم", "عيد القيامة", "عيد الميلاد", "راس السنة", "6 اكتوبر", "25 يناير", "ثورة", "المولد النبوي", "مولد النبي", "اجازة العيد", "اروح فين دلوقتي", "المكتب اللي فاتح", "مين شغال النهاردة", "بديل مكتب الصحة", "تطعيم في الاجازة", "تصريح دفن في العيد", "مكتب فتوح", "انهي رعاية شغالة", "الرعاية اللي فاتحة", "طوارئ", "توارئ", "اجازةة", "عطلت", "مناسبات", "جمعة", "عيدد", "المنصه", "موقع الطوارئ"],
+        keywords: [
+            "طوارئ", "اجازة", "إجازة", "اجازه", "عطلة", "عطله", "رسمية", "المكتب مقفل", 
+            "المكتب قفل", "المكتب قافل", "يوم الجمعة", "يوم الجمعه", "يوم السبت", 
+            "يوم حد", "بعد الظهر", "الليل", "نبطشية", "نبطشيه", "شغالين النهاردة", 
+            "عيد الفطر", "عيد الاضحى", "العيد الكبير", "العيد الصغير", "الوقفة", 
+            "الوقفه", "شم النسيم", "عيد القيامة", "عيد الميلاد", "راس السنة", 
+            "6 اكتوبر", "25 يناير", "ثورة", "المولد النبوي", "مولد النبي", "اجازة العيد", 
+            "اروح فين دلوقتي", "المكتب اللي فاتح", "مين شغال النهاردة", "بديل مكتب الصحة", 
+            "تطعيم في الاجازة", "تصريح دفن في العيد", "مكتب فتوح", "انهي رعاية شغالة", 
+            "الرعاية اللي فاتحة", "توارئ", "اجازةة", "عطلت", "مناسبات", "جمعة", 
+            "عيدد", "المنصه", "موقع الطوارئ"
+        ],
         link: "https://sites.google.com/view/wailyemergency",
         msg: "ولا تشغل بالك.. حتى في الإجازات والأعياد إحنا معاك. في منطقة الوايلي بنخصص مكتب 'نبطشي' يخلص كل الإجراءات (مواليد، وفيات، تطعيمات). تقدر تعرف المكتب اللي عليه الدور النهاردة ومكانه من هنا:"
     }
 };
 
-// 1️⃣ تحسين normalize للغة العربية
 function normalize(text) {
     if (!text) return "";
-    return text
-        .toLowerCase()
-        .replace(/[^\u0600-\u06FF\s]/g, "") // حذف الرموز غير العربية
-        .replace(/ة/g, "ه")
-        .replace(/ى/g, "ي")
-        .trim();
+    return text.toLowerCase().replace(/[^\u0600-\u06FF\s]/g, "").replace(/ة/g, "ه").replace(/ى/g, "ي").trim();
 }
 
 function similarity(a, b) {
     let matches = 0;
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        if (a[i] === b[i]) matches++;
-    }
+    for (let i = 0; i < Math.min(a.length, b.length); i++) { if (a[i] === b[i]) matches++; }
     return matches / Math.max(a.length, b.length);
 }
 
 function detectIntent(text) {
-    const normText = normalize(text);
-    if (normText.includes("ازاي") || normText.includes("اعمل") || normText.includes("اطلع") || normText.includes("خطوات") || normText.includes("ورق") || normText.includes("بكام") || normText.includes("سعر")) return "action";
-    if (normText.includes("فين") || normText.includes("عنوان") || normText.includes("اروح") || normText.includes("لوكيشن") || normText.includes("مكان")) return "location";
-    if (normText.includes("امتي") || normText.includes("مواعيد") || normText.includes("يفتح") || normText.includes("يقفل") || normText.includes("شغالين")) return "time";
+    const norm = normalize(text);
+    if (norm.includes("ازاي") || norm.includes("ورق") || norm.includes("خطوات") || norm.includes("اعمل") || norm.includes("بكام")) return "action";
+    if (norm.includes("فين") || norm.includes("عنوان") || norm.includes("مكان") || norm.includes("اروح")) return "location";
+    if (norm.includes("امتي") || norm.includes("مواعيد") || norm.includes("وقت") || norm.includes("شغالين")) return "time";
     return "normal";
 }
 
-// 2️⃣ نظام الـ Scoring الذكي
-function detectService(text) {
+function showAllServices() {
+    let html = `📋 <b>كل الخدمات المتاحة في المنطقة:</b><br><br>`;
+    for (let s in services) {
+        html += `<button class="option-btn" onclick="selectService('${s}', '')">${s}</button>`;
+    }
+    addMessage(html, "bot");
+}
+
+function detectServices(text) {
     const normText = normalize(text);
-    if (!normText) return null;
-
-    // 5️⃣ الحفاظ على أولوية الطوارئ
-    const emergencyWords = ["جمعه", "عيد", "اجازه", "عطله"];
-    if (emergencyWords.some(word => normText.includes(word))) {
-        return "خدمات الطوارئ";
-    }
-
-    let scores = {};
-    const inputWords = normText.split(/\s+/);
-
-    for (let service in services) {
-        if (service === "خدمات الطوارئ") continue;
-        scores[service] = 0;
-
-        for (let keyword of services[service].keywords) {
-            const normKey = normalize(keyword);
+    if (!normText) return [];
+    if (["جمعه", "عيد", "اجازه", "عطله", "طوارئ"].some(w => normText.includes(w))) return [{ name: "خدمات الطوارئ", score: 100 }];
+    
+    let results = [];
+    for (let s in services) {
+        let score = 0;
+        services[s].keywords.forEach(key => {
+            const normKey = normalize(key);
+            // تحسين Precision: تجاهل الكلمات القصيرة ورفع دقة التطابق
+            if (normKey.length >= 3 && normText.includes(normKey)) score += 3;
             
-            // تجاهل الكلمات القصيرة جداً (أقل من 3 حروف) أثناء المقارنة
-            if (normKey.length < 3) continue;
-
-            // لو نص المستخدم يحتوي على الكلمة بالظبط -> +3 نقاط
-            if (normText.includes(normKey)) {
-                scores[service] += 3;
-            }
-
-            // لو فيه Similarity بنظام الـ Scoring
-            inputWords.forEach(word => {
-                if (word.length >= 3) {
-                    const sim = similarity(word, normKey);
-                    if (sim > 0.6) {
-                        scores[service] += sim;
-                    }
-                }
+            normText.split(" ").forEach(word => {
+                // رفع الـ Threshold لـ 0.7 لتقليل التداخل
+                if (word.length >= 3 && similarity(word, normKey) > 0.7) score += 1;
             });
-        }
+        });
+        if (score > 0) results.push({ name: s, score: score });
     }
-
-    // اختيار الخدمة الأعلى نقاطاً
-    let bestMatch = null;
-    let maxScore = 0;
-
-    for (let service in scores) {
-        if (scores[service] > maxScore) {
-            maxScore = scores[service];
-            bestMatch = service;
-        }
+    
+    results.sort((a, b) => b.score - a.score);
+    if (results.length > 1) {
+        const topScore = results[0].score;
+        // تقليل الفجوة في الـ Multi-Choice لضمان الدقة (0.6 بدل 0.5)
+        return results.filter(r => r.score >= topScore * 0.6);
     }
-
-    // الـ Threshold المطلوب (مثلاً 1)
-    return maxScore >= 1 ? bestMatch : null;
+    return results;
 }
 
 function handleSend() {
     let input = document.getElementById("userInput");
     let text = input.value.trim();
     if (!text) return;
+
     addMessage(text, "user");
     input.value = "";
     showTyping();
+
     setTimeout(() => {
         removeTyping();
-        let serviceName = detectService(text);
-        let intent = detectIntent(text);
-        if (serviceName) {
-            let s = services[serviceName];
-            let extra = "";
-            if (intent === "action") extra = "📄 <b>بخصوص الأوراق والخطوات:</b><br>";
-            else if (intent === "location") extra = "📍 <b>بخصوص المكان والموقع:</b><br>";
-            else if (intent === "time") extra = "⏰ <b>بخصوص المواعيد:</b><br>";
-            let response = `${extra}${s.msg}<br><a href="${s.link}" target="_blank" class="btn-link">فتح الخدمة: ${serviceName}</a>`;
-            addMessage(response, "bot");
+        const matches = detectServices(text);
+        if (matches.length > 1) {
+            let html = `🔍 لقيت أكتر من حاجة متعلقة بسؤالك، تحب تختار إيه؟<br><br>`;
+            matches.forEach(m => { 
+                html += `<button class="option-btn" onclick="selectService('${m.name}', '${text}')">${m.name}</button>`; 
+            });
+            html += `<button class="all-services-btn" onclick="showAllServices()">📋 مش ده؟ عرض كل الخدمات</button>`;
+            addMessage(html, "bot");
+        } else if (matches.length === 1) {
+            selectService(matches[0].name, text);
         } else {
-            addMessage("🤔 عذراً، لم أفهم طلبك تماماً. هل تبحث عن (تطعيمات، تسجيل مواليد، أو خدمات الطوارئ)؟", "bot");
+            addMessage(`🤔 مش متأكد تماماً من طلبك.. <br><button class="all-services-btn" onclick="showAllServices()">📋 اضغط هنا لعرض كل الخدمات</button>`, "bot");
         }
     }, 1000);
+}
+
+function selectService(name, originalText) {
+    // 1️⃣ إظهار اختيار المستخدم في الشات
+    addMessage(name, "user");
+    
+    const s = services[name];
+    const norm = originalText ? normalize(originalText) : "";
+    let extra = "";
+    if (norm.includes("ازاي") || norm.includes("ورق")) extra = "📄 <b>بخصوص الأوراق والخطوات:</b><br>";
+    else if (norm.includes("فين") || norm.includes("عنوان")) extra = "📍 <b>بخصوص المكان والموقع:</b><br>";
+    else if (norm.includes("امتي") || norm.includes("مواعيد")) extra = "⏰ <b>بخصوص المواعيد:</b><br>";
+
+    // 2️⃣ الرد المتتابع لإعطاء إحساس بالواقعية
+    setTimeout(() => { 
+        const mainResponse = `${extra}${s.msg}<br><a href="${s.link}" target="_blank" class="btn-link">فتح خدمة ${name}</a>`;
+        addMessage(mainResponse, "bot"); 
+        
+        // الرد الثاني بعد ثانية بسيطة
+        setTimeout(() => {
+            const fallbackMsg = `لو مش ده اللي تقصده.. تقدر تتصفح كل خدماتنا وتختار الخدمة بسهولة من هنا 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
+            addMessage(fallbackMsg, "bot");
+        }, 1200);
+    }, 600);
 }
 
 function addMessage(text, type) {
@@ -247,16 +366,13 @@ function showTyping() {
     chat.scrollTop = chat.scrollHeight;
 }
 
-function removeTyping() {
-    let t = document.getElementById("typing");
-    if (t) t.remove();
+function removeTyping() { 
+    let t = document.getElementById("typing"); 
+    if (t) t.remove(); 
 }
 
-document.getElementById("userInput").addEventListener("keydown", function(e){
-    if (e.key === "Enter") {
-        e.preventDefault();
-        handleSend();
-    }
+document.getElementById("userInput").addEventListener("keydown", (e) => { 
+    if (e.key === "Enter") handleSend(); 
 });
 </script>
 </body>
