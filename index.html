@@ -113,12 +113,15 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
 <body>
 
 <div class="chat-container">
-    <div class="header">🤖 المساعد الذكي - منطقة الوايلي</div>
+    <div class="header">🤖 المساعد الذكي - مكاتب الصحة</div>
     <div id="chatArea" class="chat-area">
-        <div class="msg bot-msg">أهلاً بك 👋<br>أنا هنا لمساعدتك في الوصول لخدمات مكتب صحة الدمرداش ومنطقة الوايلي. عن ماذا تبحث اليوم؟</div>
+        <div class="msg bot-msg">
+            أهلاً بيك 🤍<br>
+            أنا المساعد الذكي … موجود علشان أوصّلك المعلومة الصح وأقولك تعمل إيه خطوة بخطوة ابدأ من هنا 👇<br><br>
+</div>
     </div>
     <div class="input-group">
-        <input id="userInput" placeholder="اكتب سؤالك هنا..." autocomplete="off">
+        <input id="userInput" placeholder="تقدر تكتب زى (الخدمات - المواليد – الوفيات – التطعيم) " autocomplete="off">
         <button id="sendBtn" onclick="handleSend()">إرسال</button>
     </div>
 </div>
@@ -132,12 +135,12 @@ const services = {
         keywords: [
             "دليل", "خدمات", "قائمة", "كتيب", "بيان", "اجراءات", "فهرس", "كل الخدمات", 
             "بتعملوا ايه", "بتقدموا ايه", "عايز اعرف الخدمات", "نشاطكم", "بتوع ايه", 
-            "ايه اللي عندكم", "دليلل", "خدمت", "خدات", "الخدنات", "قائمه", "قايمه", 
+            "ايه اللي عندكم", "دليلل", "خدمت", "الخدمات", "الخدنات", "قائمه", "قايمه", 
             "قيمه", "فهرص", "دليبل", "جدول", "ورق", "نظامكم", "طريقة", "خطوات", 
             "عاوز افهم", "عايز افهم", "مكتب الصحة بيعمل ايه", "المنطقة الطبية"
         ],
-        link: "https://drive.google.com/file/d/1Vgg5HS4-OeyBYbDJtl7jxRPZU8C2r_8R/view?usp=drive_link",
-        msg: "اتفضل.. ده الدليل الكامل فيه كل حاجة بنعملها في مكتب الصحة ومنطقة الوايلي بالتفصيل:"
+        link: "https://drive.google.com/file/d/12kUdRnz4KD0hCCRb5V7SzZ7ejhWp6tqf/view?usp=sharing",
+        msg: "هنا هتلاقي كل حاجة هتحتاجها علشان تخلص أي خدمة بسهولة 👇"
     },
 
     "المستشفيات التابعة": {
@@ -157,7 +160,7 @@ const services = {
         keywords: [
             "ميلاد", "مولود", "الولادة", "الولاده", "طفل", "نونو", "بيبي", "خلفنا", 
             "رزقنا", "قيد", "اضافة", "إضافة", "وضعت", "ولدت", "ولادة", "جبت عيل", 
-            "جالنا نونو", "لسه والدين", "مراتي ولدت", "قامت بالسلامة", "المولود الجديد", 
+            "المواليد", "لسه والدين", "مراتي ولدت", "قامت بالسلامة", "المولود الجديد", 
             "شهادة ميلاد", "شهاده ميلاد", "اخطار ولادة", "إخطار ولادة", "تبليغ ولادة", 
             "ورق المولود", "اسم الواد", "اكتب اسم", "اسم البت", "دفتر الصحة", "ميلتاد", 
             "ميلادد", "مولودد", "مبلاد", "مولوذ", "والدة", "والده", "ام", "اب", 
@@ -209,7 +212,7 @@ const services = {
             "تطعيم", "تطعمات", "تطاعيم", "حقنة", "حقنه", "نقط", "شلل الأطفال", 
             "شلل الاطفال", "جرعة", "تطعيمات", "الغدة", "الغده", "تحليل الكعب", 
             "تحليل كعب الرجل", "عايز ابصمه", "ابصمه من كعب رجليه", "عينات", "عينة", 
-            "شكشك", "شكشكة", "يومين", "أول يوم", "شهرين", "أربع شهور", "4 شهور", 
+            "اطعمه", "شكشكة", "يومين", "أول يوم", "شهرين", "أربع شهور", "4 شهور", 
             "ست شهور", "6 شهور", "تسع شهور", "9 شهور", "سنة", "سنه", "سنة ونص", 
             "18 شهر", "الدرن", "الكبد", "الكبد الوبائي", "خماسي", "ثلاثي", "سول", 
             "الحصبة", "الحصبه", "ام ام ار", "تطعيم المدارس", "تتطعيم", "تطعم", 
@@ -269,29 +272,51 @@ function showAllServices() {
 function detectServices(text) {
     const normText = normalize(text);
     if (!normText) return [];
-    if (["جمعه", "عيد", "اجازه", "عطله", "طوارئ"].some(w => normText.includes(w))) return [{ name: "خدمات الطوارئ", score: 100 }];
-    
+
+    // 1️⃣ أولوية الطوارئ (لا تلمسها)
+    if (["جمعه", "عيد", "اجازه", "طوارئ"].some(w => normText.includes(w))) {
+        return [{ name: "خدمات الطوارئ", score: 100 }];
+    }
+
     let results = [];
     for (let s in services) {
         let score = 0;
+        let hasExactMatch = false;
+
         services[s].keywords.forEach(key => {
             const normKey = normalize(key);
-            // تحسين Precision: تجاهل الكلمات القصيرة ورفع دقة التطابق
-            if (normKey.length >= 3 && normText.includes(normKey)) score += 3;
             
-            normText.split(" ").forEach(word => {
-                // رفع الـ Threshold لـ 0.7 لتقليل التداخل
-                if (word.length >= 3 && similarity(word, normKey) > 0.7) score += 1;
-            });
+            // 2️⃣ القاتل الصامت للمشكلة: لو الكلمة موجودة بالظبط (Exact Match)
+            // لو كتب "تطعيم" ولقى "تطعيم" بياخد 100 نقطة فوراً ويقفل الباب على غيره
+            if (normText.includes(normKey)) {
+                score += 100; 
+                hasExactMatch = true;
+            }
+            
+            // 3️⃣ البحث بالكلمات المنفردة (فقط لو مفيش Match تام)
+            if (!hasExactMatch) {
+                normText.split(" ").forEach(word => {
+                    if (word.length >= 4) { // رفعنا عدد الحروف لـ 4 لمنع كلمات (وفاة، ميلاد) من التداخل
+                        let sim = similarity(word, normKey);
+                        if (sim > 0.85) { // رفعنا الدقة جداً لـ 85%
+                            score += 10;
+                        }
+                    }
+                });
+            }
         });
+
         if (score > 0) results.push({ name: s, score: score });
     }
-    
+
+    // ترتيب النتائج
     results.sort((a, b) => b.score - a.score);
+
+    // 4️⃣ الفلترة الصارمة: لو فيه خدمة جايبة سكور عالي جداً (تطابق تام)
+    // ارمي أي حاجة تانية سكورها ضعيف (زي الوفاة اللي كانت بتنط بـ 2 أو 3 نقط)
     if (results.length > 1) {
         const topScore = results[0].score;
-        // تقليل الفجوة في الـ Multi-Choice لضمان الدقة (0.6 بدل 0.5)
-        return results.filter(r => r.score >= topScore * 0.6);
+        return results.filter(r => r.score >= topScore * 0.9); // لازم التانية تكون قوية جداً عشان تظهر
     }
     return results;
 }
