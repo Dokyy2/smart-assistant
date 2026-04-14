@@ -116,8 +116,8 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
     <div class="header">🤖 المساعد الذكي - مكاتب الصحة</div>
     <div id="chatArea" class="chat-area">
         <div class="msg bot-msg">
-           <br> مرحبًا بك في دليل مكاتب الصحة 🤝
-دليلك في مكاتب الصحة جاهز يساعدك تعرف الإجراءات والأوراق المطلوبة بسهولة وبخطوات واضحة
+           <br> مرحبًا بك في دليل مكاتب الصحة 🤝<br>
+دليلك في مكاتب الصحة جاهز يساعدك تعرف الإجراءات والأوراق المطلوبة بسهولة وبخطوات واضحة<br>
 اكتب الخدمة اللي محتاجها وابدأ فورًا أو اكتب "اعرفني" لو حابب تعرف اقدر اساعدك في ايه 👇<br><br>
 </div>
     </div>
@@ -132,6 +132,25 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
 // 1️⃣ قاعدة البيانات (Services Database)
 // ==========================================
 const services = {
+    "اعرفني": {
+        keywords: [
+            "اعرفني", "من انت", "مين انت", "بتعمل ايه", 
+            "بتساعد في ايه", "انت ايه", "انت مين", 
+            "تعريف", "مين اللي عاملك", "انت تبع مين"
+        ],
+        link: null,
+        msg: `
+        أنا دليلك في مكاتب الصحة 🤍<br>
+        اتعملت علشان أسهّل عليك الإجراءات اللي ممكن تبقى معقدة أو مش واضحة<br>
+        سواء شهادة ميلاد، وفاة، تطعيمات أو غيره<br>
+        هتقولّي عايز تعمل إيه… وأنا أقولك الخطوات والورق المطلوب ببساطة ومن غير لف<br><br>
+        أنا معمول مخصوص علشان أساعدك توصل للمعلومة الصح بسرعة ومن غير ما تحتار<br><br>
+        تم تطويري علشان أخدم الناس بشكل بسيط وواضح<br>
+        بواسطة <b>باســم</b><br><br>
+        جرب تكتب الخدمة اللي محتاجها 👇
+        `
+    },
+
     "دليل الخدمات الكامل": {
         keywords: [
             "دليل", "خدمات", "قائمة", "كتيب", "بيان", "اجراءات", "فهرس", "كل الخدمات", 
@@ -156,28 +175,7 @@ const services = {
         link: "https://drive.google.com/file/d/1MELxONHRA8vLlynKibvUyzlb3aH-by5U/view?usp=drive_link",
         msg: "اهلا وسهلا .. مكاتب الصحة ومراكز الرعاية في الخدمة، هنا هتلاقي كل الاماكن التابعة لينا، بمواعيد العمل ومكانهم بالظبط على الخريطة (اللوكيشن):"
     },
-    
-   "اعرفني": {
-    keywords: [
-        "اعرفني", "من انت", "مين انت", "بتعمل ايه", 
-        "بتساعد في ايه", "انت ايه", "انت مين", 
-        "تعريف", "مين اللي عاملك", "انت تبع مين"
-    ],
-        link: "https://drive.google.com/file/d/1MELxONHRA8vLlynKibvUyzlb3aH-by5U/view?usp=drive_link",
-        msg: " أنا دليلك في مكاتب الصحة 🤍
-    اتعملت علشان أسهّل عليك الإجراءات اللي ممكن تبقى معقدة أو مش واضحة
-    سواء شهادة ميلاد، وفاة، تطعيمات أو غيره
-    هتقولّي عايز تعمل إيه… وأنا أقولك الخطوات والورق المطلوب ببساطة ومن غير لف
 
-    أنا معمول مخصوص علشان أساعدك توصل للمعلومة الصح بسرعة ومن غير ما تحتار
-
-    تم تطويري علشان أخدم الناس بشكل بسيط وواضح<br>
-    بواسطة باســم
-
-    جرب تكتب الخدمة اللي محتاجها 👇"
-        
-    },
-    
     "تسجيل المواليد": {
         keywords: [
             "ميلاد", "مولود", "الولادة", "الولاده", "طفل", "نونو", "بيبي", "خلفنا", 
@@ -295,7 +293,6 @@ function detectServices(text) {
     const normText = normalize(text);
     if (!normText) return [];
 
-    // 1️⃣ أولوية الطوارئ (لا تلمسها)
     if (["جمعه", "عيد", "اجازه", "طوارئ"].some(w => normText.includes(w))) {
         return [{ name: "خدمات الطوارئ", score: 100 }];
     }
@@ -307,38 +304,27 @@ function detectServices(text) {
 
         services[s].keywords.forEach(key => {
             const normKey = normalize(key);
-            
-            // 2️⃣ القاتل الصامت للمشكلة: لو الكلمة موجودة بالظبط (Exact Match)
-            // لو كتب "تطعيم" ولقى "تطعيم" بياخد 100 نقطة فوراً ويقفل الباب على غيره
             if (normText.includes(normKey)) {
                 score += 100; 
                 hasExactMatch = true;
             }
-            
-            // 3️⃣ البحث بالكلمات المنفردة (فقط لو مفيش Match تام)
             if (!hasExactMatch) {
                 normText.split(" ").forEach(word => {
-                    if (word.length >= 4) { // رفعنا عدد الحروف لـ 4 لمنع كلمات (وفاة، ميلاد) من التداخل
+                    if (word.length >= 4) {
                         let sim = similarity(word, normKey);
-                        if (sim > 0.85) { // رفعنا الدقة جداً لـ 85%
+                        if (sim > 0.85) {
                             score += 10;
                         }
                     }
                 });
             }
         });
-
         if (score > 0) results.push({ name: s, score: score });
     }
-
-    // ترتيب النتائج
     results.sort((a, b) => b.score - a.score);
-
-    // 4️⃣ الفلترة الصارمة: لو فيه خدمة جايبة سكور عالي جداً (تطابق تام)
-    // ارمي أي حاجة تانية سكورها ضعيف (زي الوفاة اللي كانت بتنط بـ 2 أو 3 نقط)
     if (results.length > 1) {
         const topScore = results[0].score;
-        return results.filter(r => r.score >= topScore * 0.9); // لازم التانية تكون قوية جداً عشان تظهر
+        return results.filter(r => r.score >= topScore * 0.9);
     }
     return results;
 }
@@ -371,7 +357,6 @@ function handleSend() {
 }
 
 function selectService(name, originalText) {
-    // 1️⃣ إظهار اختيار المستخدم في الشات
     addMessage(name, "user");
     
     const s = services[name];
@@ -381,12 +366,13 @@ function selectService(name, originalText) {
     else if (norm.includes("فين") || norm.includes("عنوان")) extra = "📍 <b>بخصوص المكان والموقع:</b><br>";
     else if (norm.includes("امتي") || norm.includes("مواعيد")) extra = "⏰ <b>بخصوص المواعيد:</b><br>";
 
-    // 2️⃣ الرد المتتابع لإعطاء إحساس بالواقعية
     setTimeout(() => { 
-        const mainResponse = `${extra}${s.msg}<br><a href="${s.link}" target="_blank" class="btn-link">فتح خدمة ${name}</a>`;
+        let mainResponse = `${extra}${s.msg}`;
+        if (s.link) {
+            mainResponse += `<br><a href="${s.link}" target="_blank" class="btn-link">فتح خدمة ${name}</a>`;
+        }
         addMessage(mainResponse, "bot"); 
         
-        // الرد الثاني بعد ثانية بسيطة
         setTimeout(() => {
             const fallbackMsg = `لو مش ده اللي تقصده.. تقدر تتصفح كل خدماتنا وتختار الخدمة بسهولة من هنا 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
             addMessage(fallbackMsg, "bot");
