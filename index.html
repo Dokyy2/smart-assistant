@@ -58,6 +58,15 @@ body {
     animation: slideIn 0.4s ease-out forwards;
 }
 
+/* تصميم خاص لرسالة اعرفني */
+.about-card {
+    background: #f0f7ff !important;
+    border: 1px solid #d1e2ff !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1) !important;
+    color: #1e293b !important;
+}
+
 @keyframes slideIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
@@ -116,7 +125,7 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
     <div class="header">🤖 المساعد الذكي - مكاتب الصحة</div>
     <div id="chatArea" class="chat-area">
         <div class="msg bot-msg">
-           <br> مرحبًا بك في دليل مكاتب الصحة 🤝<br>
+            <br> مرحبًا بك في دليل مكاتب الصحة 🤝<br>
 دليلك في مكاتب الصحة جاهز يساعدك تعرف الإجراءات والأوراق المطلوبة بسهولة وبخطوات واضحة<br>
 اكتب الخدمة اللي محتاجها وابدأ فورًا أو اكتب "اعرفني" لو حابب تعرف اقدر اساعدك في ايه 👇<br><br>
 </div>
@@ -128,9 +137,6 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
 </div>
 
 <script>
-// ==========================================
-// 1️⃣ قاعدة البيانات (Services Database)
-// ==========================================
 const services = {
     "اعرفني": {
         keywords: [
@@ -273,14 +279,6 @@ function similarity(a, b) {
     return matches / Math.max(a.length, b.length);
 }
 
-function detectIntent(text) {
-    const norm = normalize(text);
-    if (norm.includes("ازاي") || norm.includes("ورق") || norm.includes("خطوات") || norm.includes("اعمل") || norm.includes("بكام")) return "action";
-    if (norm.includes("فين") || norm.includes("عنوان") || norm.includes("مكان") || norm.includes("اروح")) return "location";
-    if (norm.includes("امتي") || norm.includes("مواعيد") || norm.includes("وقت") || norm.includes("شغالين")) return "time";
-    return "normal";
-}
-
 function showAllServices() {
     let html = `📋 <b>كل الخدمات المتاحة في المنطقة:</b><br><br>`;
     for (let s in services) {
@@ -366,24 +364,39 @@ function selectService(name, originalText) {
     else if (norm.includes("فين") || norm.includes("عنوان")) extra = "📍 <b>بخصوص المكان والموقع:</b><br>";
     else if (norm.includes("امتي") || norm.includes("مواعيد")) extra = "⏰ <b>بخصوص المواعيد:</b><br>";
 
+    showTyping();
+
+    // تعديل 2: تأخير 1.5 ثانية لرسالة "اعرفني"
+    let responseDelay = (name === "اعرفني") ? 1500 : 600;
+
     setTimeout(() => { 
+        removeTyping();
         let mainResponse = `${extra}${s.msg}`;
-        if (s.link) {
+        
+        // تعديل 5: إضافة الزر فقط إذا كان الرابط موجودًا
+        if (s.link && s.link !== null) {
             mainResponse += `<br><a href="${s.link}" target="_blank" class="btn-link">فتح خدمة ${name}</a>`;
         }
-        addMessage(mainResponse, "bot"); 
         
-        setTimeout(() => {
-            const fallbackMsg = `لو مش ده اللي تقصده.. تقدر تتصفح كل خدماتنا وتختار الخدمة بسهولة من هنا 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
-            addMessage(fallbackMsg, "bot");
-        }, 1200);
-    }, 600);
+        // تعديل 1: إضافة class مميز لرسالة "اعرفني"
+        let customClass = (name === "اعرفني") ? "about-card" : "";
+        addMessage(mainResponse, "bot", customClass); 
+        
+        // تعديل 3: عدم عرض "كل الخدمات" إذا كانت الخدمة هي "اعرفني"
+        if (name !== "اعرفني") {
+            setTimeout(() => {
+                const fallbackMsg = `لو مش ده اللي تقصده.. تقدر تتصفح كل خدماتنا وتختار الخدمة بسهولة من هنا 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
+                addMessage(fallbackMsg, "bot");
+            }, 1200);
+        }
+    }, responseDelay);
 }
 
-function addMessage(text, type) {
+function addMessage(text, type, customClass = "") {
     let chat = document.getElementById("chatArea");
     let div = document.createElement("div");
-    div.className = "msg " + (type === "user" ? "user-msg" : "bot-msg");
+    // دمج الـ classes المطلوبة
+    div.className = "msg " + (type === "user" ? "user-msg" : "bot-msg") + " " + customClass;
     div.innerHTML = text;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
