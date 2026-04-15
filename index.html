@@ -58,13 +58,16 @@ body {
     animation: slideIn 0.4s ease-out forwards;
 }
 
-/* تصميم خاص لرسالة اعرفني */
+/* تصميم مميز جداً لرسالة اعرفني لجعلها ملفتة */
 .about-card {
-    background: #f0f7ff !important;
-    border: 1px solid #d1e2ff !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1) !important;
-    color: #1e293b !important;
+    background: #e0f2fe !important; /* لون سماوي هادئ مميز */
+    border: 2px solid #3b82f6 !important;
+    border-radius: 25px !important;
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15) !important;
+    color: #0c4a6e !important;
+    font-weight: 600;
+    line-height: 1.8 !important;
+    text-align: center;
 }
 
 @keyframes slideIn {
@@ -123,33 +126,18 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
 
 <div class="chat-container">
     <div class="header">🤖 المساعد الذكي - مكاتب الصحة</div>
-    
     <div id="chatArea" class="chat-area">
         <div class="msg bot-msg">
-            👋 أهلاً بيك<br><br>
-
-            لو محتار تبدأ منين أو مش عارف الإجراءات تمشي إزاي… أنا هنا علشان أساعدك 🤍<br><br>
-
-            💬 قولّي عايز تعمل إيه<br>
-            وأنا هقولك تعمل إيه خطوة خطوة بشكل بسيط وواضح<br><br>
-
-            ✨ <b>جرب تكتب دلوقتي:</b><br>
-            <span style="color:#2563eb; font-weight:700;">
-            "عايز أطلع شهادة ميلاد"
-            </span><br><br>
-
-            🔹 خدمات تقدر تسأل عنها:<br>
-            التطعيمات - الوفاة - تنمية الأسرة
+            <br> مرحبًا بك في دليل مكاتب الصحة 🤝<br>
+            دليلك في مكاتب الصحة جاهز يساعدك تعرف الإجراءات والأوراق المطلوبة بسهولة وبخطوات واضحة<br>
+            اكتب الخدمة اللي محتاجها وابدأ فورًا أو اكتب "اعرفني" لو حابب تعرف اقدر اساعدك في ايه 👇<br><br>
         </div>
     </div>
-
     <div class="input-group">
-        <input id="userInput" 
-               placeholder="مثال: عايز أعرف ورق الوفاة" 
-               autocomplete="off">
+        <input id="userInput" placeholder="تقدر تكتب زى (الخدمات - المواليد – الوفيات – التطعيم) " autocomplete="off">
         <button id="sendBtn" onclick="handleSend()">إرسال</button>
     </div>
-</div></div>
+</div>
 
 <script>
 const services = {
@@ -217,7 +205,7 @@ const services = {
             "وفاة", "وفاه", "وفات", "مات", "توفى", "توفي", "توفاه", "المتوفي", 
             "المتوفى", "ميت", "الميت", "الوفيات", "البقاء لله", "الدوام لله", 
             "انتقل إلى الأمجاد السماوية", "انتقل للامجاد السماويه", "امجاد سماوية", 
-            "امجاد سماويه", "رقد على رجاء القيامة", "امجاد السماوية", "امجاد السماويه", 
+            "امجاد سماويه", "رقد على رجاء القيامة", "امجاد السماوية", "امجاد السماوية", 
             "رقد على رجاء القيامه", "الراحة الأبدية", "الراحة الابدية", "تنيح", 
             "تنيحت", "السموات", "طلعت روحه", "حالة وفاة", "تصريح دفن", "تصريح الدفن", 
             "ورق الدفن", "اكرام الميت", "إكرام الميت", "تبليغ وفاة", "شهادة وفاة", 
@@ -275,7 +263,7 @@ const services = {
             "6 اكتوبر", "25 يناير", "ثورة", "المولد النبوي", "مولد النبي", "اجازة العيد", 
             "اروح فين دلوقتي", "المكتب اللي فاتح", "مين شغال النهاردة", "بديل مكتب الصحة", 
             "تطعيم في الاجازة", "تصريح دفن في العيد", "مكتب فتوح", "انهي رعاية شغالة", 
-            "الرعاية اللي فاتحة", "توارئ", "اجازةة", "عطلت", "مناسبات", "جمعة", 
+            "الرعاية اللي فاتحة", "طوارئ", "توارئ", "اجازةة", "عطلت", "مناسبات", "جمعة", 
             "عيدد", "المنصه", "موقع الطوارئ"
         ],
         link: "https://sites.google.com/view/wailyemergency",
@@ -292,6 +280,14 @@ function similarity(a, b) {
     let matches = 0;
     for (let i = 0; i < Math.min(a.length, b.length); i++) { if (a[i] === b[i]) matches++; }
     return matches / Math.max(a.length, b.length);
+}
+
+function detectIntent(text) {
+    const norm = normalize(text);
+    if (norm.includes("ازاي") || norm.includes("ورق") || norm.includes("خطوات") || norm.includes("اعمل") || norm.includes("بكام")) return "action";
+    if (norm.includes("فين") || norm.includes("عنوان") || norm.includes("مكان") || norm.includes("اروح")) return "location";
+    if (norm.includes("امتي") || norm.includes("مواعيد") || norm.includes("وقت") || norm.includes("شغالين")) return "time";
+    return "normal";
 }
 
 function showAllServices() {
@@ -375,29 +371,31 @@ function selectService(name, originalText) {
     const s = services[name];
     const norm = originalText ? normalize(originalText) : "";
     let extra = "";
-    if (norm.includes("ازاي") || norm.includes("ورق")) extra = "📄 <b>بخصوص الأوراق والخطوات:</b><br>";
-    else if (norm.includes("فين") || norm.includes("عنوان")) extra = "📍 <b>بخصوص المكان والموقع:</b><br>";
-    else if (norm.includes("امتي") || norm.includes("مواعيد")) extra = "⏰ <b>بخصوص المواعيد:</b><br>";
+    
+    if (name !== "اعرفني") {
+        if (norm.includes("ازاي") || norm.includes("ورق")) extra = "📄 <b>بخصوص الأوراق والخطوات:</b><br>";
+        else if (norm.includes("فين") || norm.includes("عنوان")) extra = "📍 <b>بخصوص المكان والموقع:</b><br>";
+        else if (norm.includes("امتي") || norm.includes("مواعيد")) extra = "⏰ <b>بخصوص المواعيد:</b><br>";
+    }
 
     showTyping();
 
-    // تعديل 2: تأخير 1.5 ثانية لرسالة "اعرفني"
-    let responseDelay = (name === "اعرفني") ? 1500 : 600;
+    // تعديل: وقت أطول لـ "اعرفني" لزيادة هيبتها وتميزها
+    let responseDelay = (name === "اعرفني") ? 2200 : 600;
 
     setTimeout(() => { 
         removeTyping();
         let mainResponse = `${extra}${s.msg}`;
         
-        // تعديل 5: إضافة الزر فقط إذا كان الرابط موجودًا
         if (s.link && s.link !== null) {
             mainResponse += `<br><a href="${s.link}" target="_blank" class="btn-link">فتح خدمة ${name}</a>`;
         }
         
-        // تعديل 1: إضافة class مميز لرسالة "اعرفني"
+        // تعديل: تطبيق class الكارت المميز لرسالة "اعرفني" فقط
         let customClass = (name === "اعرفني") ? "about-card" : "";
         addMessage(mainResponse, "bot", customClass); 
         
-        // تعديل 3: عدم عرض "كل الخدمات" إذا كانت الخدمة هي "اعرفني"
+        // تعديل: لا تظهر رسالة "عرض كل الخدمات" إذا كانت الخدمة المختارة هي "اعرفني"
         if (name !== "اعرفني") {
             setTimeout(() => {
                 const fallbackMsg = `لو مش ده اللي تقصده.. تقدر تتصفح كل خدماتنا وتختار الخدمة بسهولة من هنا 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
@@ -410,8 +408,8 @@ function selectService(name, originalText) {
 function addMessage(text, type, customClass = "") {
     let chat = document.getElementById("chatArea");
     let div = document.createElement("div");
-    // دمج الـ classes المطلوبة
-    div.className = "msg " + (type === "user" ? "user-msg" : "bot-msg") + " " + customClass;
+    // دمج classes الرسالة العادية مع الـ customClass لو وجدت
+    div.className = "msg " + (type === "user" ? "user-msg" : "bot-msg") + (customClass ? " " + customClass : "");
     div.innerHTML = text;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
