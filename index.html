@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> المساعد الذكى - لمكاتب الصحة</title>
+<title> المساعد الذكى - مكاتب الصحة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -138,7 +138,7 @@ button#sendBtn { background: var(--primary-color); color: white; border: none; b
 
     <div class="input-group">
         <input id="userInput" 
-               placeholder="مثال: عايز أعرف ورق الوفاة" 
+               placeholder="مثال: عايز أعرف ورق الوفاه " 
                autocomplete="off">
         <button id="sendBtn" onclick="handleSend()">إرسال</button>
     </div>
@@ -174,20 +174,20 @@ const services = {
     <br>باسم أشرف (للتواصـل)<br>
 </span>
 
-جرب تكتب الخدمة اللي محتاجها 👇
+"اكتب اسم الخدمة اللي محتاجها وأنا هساعدك فورًا 👇" 
 `
     },
 
     "دليل الخدمات الكامل": {
         keywords: [
             "دليل", "خدمات", "قائمة", "كتيب", "الكامل", "اجراءات", "فهرس", "كل الخدمات", 
-            "بتعملوا ايه", "بتقدموا ايه", "عايز اعرف الخدمات", "نشاطكم", "بتوع ايه", 
+            "بتعملوا ايه", "بتقدموا ايه", "عايز اعرف الخدمات", "نشاطكم", "الخدمات", 
             "ايه اللي عندكم", "دليلل", "خدمت", "الخدمات", "الخدنات", "قائمه", "قايمه", 
             "قيمه", "فهرص", "دليبل", "جدول", "ورق", "نظامكم", "طريقة", "خطوات", 
             "عاوز افهم", "عايز افهم", "مكتب الصحة بيعمل ايه", "المنطقة الطبية"
         ],
         link: "https://drive.google.com/file/d/12kUdRnz4KD0hCCRb5V7SzZ7ejhWp6tqf/view?usp=sharing",
-        msg: "هنا هتلاقي كل حاجة هتحتاجها علشان تخلص أي خدمة بسهولة 👇"
+        msg: "هنا هتلاقي دليل كامل بكل الخدمات، علشان تقدر تخلص إجراءاتك بسهولة ومن غير تعقيد 👇"
     },
 
     "المستشفيات التابعة": {
@@ -209,7 +209,7 @@ const services = {
             "رزقنا", "قيد", "اضافة", "إضافة", "وضعت", "ولدت", "ولادة", "جبت عيل", 
             "المواليد", "لسه والدين", "مراتي ولدت", "قامت بالسلامة", "المولود الجديد", 
             "شهادة ميلاد", "شهاده ميلاد", "اخطار ولادة", "إخطار ولادة", "تبليغ ولادة", 
-            "ورق المولود", "اسم الواد", "اكتب اسم", "اسم البت", "دفتر الصحة", "ميلتاد", 
+            "ورق المولود", "اسم الواد", "اكتب اسم", "اسم البت", "مواليد", "ميلتاد", 
             "ميلادد", "مولودد", "مبلاد", "مولوذ", "والدة", "والده", "ام", "اب", 
             "تجيل", "تسبيل", "سهاة", "شهاذة", "شهادت", "الواد", "البت", "العيل", 
             "البيبي", "عايز اسمي", "تسجيل الواد", "تسجيل البت"
@@ -251,7 +251,7 @@ const services = {
             "بعد الولادة", "تنظيم خلفة", "دكتورة النسا", "مكتب الصحة تنظيم"
         ],
         link: "https://drive.google.com/file/d/1_IpgW0VgJwO9ngBtpCP1f2kHr33SUtGb/view?usp=drive_link",
-        msg: "أهلاً بيكي.. مكاتبنا بتوفر لك سرية تامه وأمن وأحدث وسائل تنظيم الأسرة (زي اللولب، الحبوب، والواقي الذكري) بالمجان أو بأسعار رمزية. هنا هتلاقي كل الوسائل المتاحة:"
+        msg: "مكاتبنا بتوفر خدمات تنظيم الأسرة في سرية تامة وبشكل آمن، لمساعدتكم على اختيار الأنسب ليكم بسهولة وراحة "
     },
 
     "التطعيمات": {
@@ -285,7 +285,9 @@ const services = {
             "عيدد", "المنصه", "موقع الطوارئ"
         ],
         link: "https://sites.google.com/view/wailyemergency",
-        msg: "ولا تشغل بالك.. حتى في الإجازات والأعياد إحنا معاك. في منطقة الوايلي بنخصص مكتب 'نبطشي' يخلص كل الإجراءات (مواليد، وفيات، تطعيمات). تقدر تعرف المكتب اللي عليه الدور النهاردة ومكانه من هنا:"
+        msg: "ولا تشغل بالك.. حتى في الإجازات والأعياد الخدمة مستمرة.
+في محافظة القاهرة بيتم توفير مكاتب نبطشية لإنهاء الإجراءات الضرورية (مواليد، وفيات، تطعيمات).
+تقدر تعرف المكتب الشغال النهاردة ومكانه من هنا 👇"
     }
 };
 
@@ -309,7 +311,7 @@ function detectIntent(text) {
 }
 
 function showAllServices() {
-    let html = `📋 <b>كل الخدمات المتاحة في المنطقة:</b><br><br>`;
+    let html = `📋 <b> كل الخدمات المتاحة </b><br><br>`;
     for (let s in services) {
         html += `<button class="option-btn" onclick="selectService('${s}', '')">${s}</button>`;
     }
@@ -321,7 +323,7 @@ function detectServices(text) {
     if (!normText) return [];
 
     if (["جمعه", "عيد", "اجازه", "طوارئ"].some(w => normText.includes(w))) {
-        return [{ name: "خدمات الطوارئ", score: 100 }];
+        return [{ name: "خدمات الطوارئ", score: 80 }];
     }
 
     let results = [];
@@ -419,7 +421,9 @@ function selectService(name, originalText) {
         
         if (name !== "اعرفني") {
             setTimeout(() => {
-                const fallbackMsg = `لو مش ده اللي تقصده.. تقدر تتصفح كل خدماتنا وتختار الخدمة بسهولة من هنا 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
+                const fallbackMsg = `ممكن أكون فهمت سؤالك بشكل مختلف 🤍
+تقدر تتصفح كل الخدمات المتاحة وتختار اللي يناسبك 👇
+ 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
                 addMessage(fallbackMsg, "bot");
             }, 1200);
         }
@@ -459,7 +463,7 @@ function showContact() {
     🟢 <a href="https://wa.me/201021708011" target="_blank" style="color:#2563eb; text-decoration:none; font-weight:600;">WhatsApp: 01021708011</a><br>
     📧 <a href="mailto:Dokyy2@gmail.com" style="color:#2563eb; text-decoration:none; font-weight:600;">Email: Dokyy2@gmail.com</a><br><br>
 
-    🤍 لو عندك اقتراح أو محتاج مساعدة سيبلي رسالة على الوتس اب 
+    🤍 "لو عندك استفسار أو محتاج مساعدة، تقدر تتواصل معايا على واتساب" 
     `;
 
     addMessage(msg, "bot", "about-card");
