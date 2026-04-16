@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> المساعد الذكى - مكاتب الصحة</title>
+<title> المساعد الذكى - لمكاتب الصحة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -153,7 +153,7 @@ const services = {
             "عن المساعد", "مين اللي عاملك", "انت تبع مين"
         ],
         link: null,
-       msg: `
+        msg: `
 أنا دليلك في مكاتب الصحة 🤍<br>
 اتعملت علشان أسهّل عليك الإجراءات اللي ممكن تبقى معقدة أو مش واضحة<br>
 سواء شهادة ميلاد، وفاة، تطعيمات أو غيره<br>
@@ -173,8 +173,8 @@ const services = {
 >
     <br>باسم أشرف (للتواصـل)<br>
 </span>
-
-"اكتب اسم الخدمة اللي محتاجها وأنا هساعدك فورًا 👇" 
+<br>
+اكتب اسم الخدمة اللي محتاجها وأنا هساعدك فورًا 👇
 `
     },
 
@@ -194,7 +194,7 @@ const services = {
         keywords: [
             "مستشفى", "مستشفيات", "المراكز الطبية", "وحدة صحية", "تخصصات", "مواعيد العمل", 
             "قريب مني", "دكتور", "كشف", "عيادة", "مستشفي", "اروح فين", "اقرب حاجة", 
-            "كشف رخيص", "دكاترة", "تعبان", "موجوع", "مستشفياتت", "مستشفا", "مشتشفى", 
+            "كشف rخيص", "دكاترة", "تعبان", "موجوع", "مستشفياتت", "مستشفا", "مشتشفى", 
             "دكتورر", "عياده", "عنواين", "لوكيشن", "لوكيشنات", "موعيد", "المركز الطبي", 
             "مستشفى الدمرداش", "مستشفيات الوايلي", "الحكومي", "المجاني", "كشف جلدية", 
             "كشف اطفال", "عنوان المستشفى", "شغالين لحد امتى"
@@ -285,9 +285,7 @@ const services = {
             "عيدد", "المنصه", "موقع الطوارئ"
         ],
         link: "https://sites.google.com/view/wailyemergency",
-        msg: "ولا تشغل بالك.. حتى في الإجازات والأعياد الخدمة مستمرة.
-في محافظة القاهرة بيتم توفير مكاتب نبطشية لإنهاء الإجراءات الضرورية (مواليد، وفيات، تطعيمات).
-تقدر تعرف المكتب الشغال النهاردة ومكانه من هنا 👇"
+        msg: "ولا تشغل بالك.. حتى في الإجازات والأعياد الخدمة مستمرة. في محافظة القاهرة بيتم توفير مكاتب نبطشية لإنهاء الإجراءات الضرورية (مواليد، وفيات، تطعيمات). تقدر تعرف المكتب الشغال النهاردة ومكانه من هنا 👇"
     }
 };
 
@@ -406,7 +404,7 @@ function selectService(name, originalText) {
 
     showTyping();
 
-    let responseDelay = (name === "اعرفني") ? 1500 : 600;
+    let responseDelay = (name === "اعرفني") ? 1800 : 600;
 
     setTimeout(() => { 
         removeTyping();
@@ -421,9 +419,7 @@ function selectService(name, originalText) {
         
         if (name !== "اعرفني") {
             setTimeout(() => {
-                const fallbackMsg = `ممكن أكون فهمت سؤالك بشكل مختلف 🤍
-تقدر تتصفح كل الخدمات المتاحة وتختار اللي يناسبك 👇
- 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
+                const fallbackMsg = `ممكن أكون فهمت سؤالك بشكل مختلف 🤍<br>تقدر تتصفح كل الخدمات المتاحة وتختار اللي يناسبك 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
                 addMessage(fallbackMsg, "bot");
             }, 1200);
         }
@@ -469,7 +465,6 @@ function showContact() {
     addMessage(msg, "bot", "about-card");
 }
     
-// وظيفة ظهور رسالة الترحيب بشكل مبهر عند فتح الصفحة مباشرة
 window.onload = function() {
     setTimeout(() => {
         showTyping();
@@ -504,8 +499,8 @@ window.onload = function() {
                 التطعيمات - الوفاة - تنمية الأسرة - عن المساعد
             `;
             addMessage(welcomeMsg, "bot", "welcome-special");
-        }, 1500); // وقت كتابة الرسالة
-    }, 1000); // الانتظار ثانية قبل بدء المساعد في الحركة
+        }, 1500); 
+    }, 1000); 
 };
 
 document.getElementById("userInput").addEventListener("keydown", (e) => { 
