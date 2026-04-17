@@ -475,13 +475,21 @@ function selectService(name, originalText, fromButton = false) {
         let customClass = (name === "اعرفني" || name === "التأمين الصحي") ? "about-card" : "";
         addMessage(mainResponse, "bot", customClass); 
         
-        if (name !== "اعرفني") {
-            setTimeout(() => {
-                const fallbackMsg = `ممكن أكون فهمت سؤالك بشكل مختلف 🤍
+        // 👇 لو التأمين الصحي → اعرض الترحيب بعده
+if (name === "التأمين الصحي") {
+    setTimeout(() => {
+        addMessage(getWelcomeMessage(), "bot", "welcome-special");
+    }, 1200);
+}
+
+// 👇 باقي الخدمات → fallback عادي
+else if (name !== "اعرفني") {
+    setTimeout(() => {
+        const fallbackMsg = `ممكن أكون فهمت سؤالك بشكل مختلف 🤍
 تقدر تتصفح كل الخدمات المتاحة وتختار اللي يناسبك 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
-                addMessage(fallbackMsg, "bot");
-            }, 1200);
-        }
+        addMessage(fallbackMsg, "bot");
+    }, 1200);
+}
     }, responseDelay);
 }
 
@@ -523,7 +531,36 @@ function showContact() {
 
     addMessage(msg, "bot", "about-card");
 }
-    
+function getWelcomeMessage() {
+    return `
+        👋 أهلاً بيك<br><br>
+        لو محتار تبدأ منين أو مش عارف الإجراءات تمشي إزاي… أنا هنا علشان أساعدك 🤍<br><br>
+        💬 قولّي عايز تعمل إيه<br>
+        وأنا هقولك تعمل إيه خطوة خطوة بشكل بسيط وواضح<br><br>
+        ✨ <b>جرب تدوس هنا دلوقتي:</b><br>
+        <span 
+            onclick="quickSend('عايز أطلع شهادة ميلاد')" 
+            style="
+                color:#2563eb;
+                font-weight:700;
+                cursor:pointer;
+                background:#e0f2fe;
+                padding:6px 12px;
+                border-radius:12px;
+                display:inline-block;
+                margin-top:6px;
+                border:1px solid #93c5fd;
+                transition:0.2s;
+            "
+            onmouseover="this.style.background='#bfdbfe'"
+            onmouseout="this.style.background='#e0f2fe'"
+        >
+        👉 عايز أطلع شهادة ميلاد
+        </span><br><br>
+        🔹 خدمات تقدر تسأل عنها:<br>
+        التطعيمات - الوفاة - تنمية الأسرة - عن المساعد
+    `;
+}    
 window.onload = function() {
     setTimeout(() => {
         showTyping();
