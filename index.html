@@ -498,12 +498,11 @@ if (name === "التأمين الصحي") {
 // 👇 باقي الخدمات → fallback عادي
 else if (name !== "اعرفني") {
     setTimeout(() => {
-        const fallbackMsg = `ممكن أكون فهمت سؤالك بشكل مختلف 🤍
-تقدر تتصفح كل الخدمات المتاحة وتختار اللي يناسبك 👇<br><button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
+        const fallbackMsg = `لو ده مش اللي تقصده 🤍<br>
+تقدر تختار من الخدمات المتاحة بسهولة 👇<br>
+<button class="all-services-btn" onclick="showAllServices()">📋 عرض كل الخدمات</button>`;
         addMessage(fallbackMsg, "bot");
     }, 1200);
-}
-    }, responseDelay);
 }
 
 function addMessage(text, type, customClass = "") {
