@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المساعد الذكي - مكاتب الصحة</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
+        <div class="splash-mark">
+            <img src="assets/images/assistant-logo.jpg" alt="شعار المساعد الذكي" class="splash-logo">
+            <div class="splash-loader" aria-label="جاري التحميل">
+                <span class="loader-walker">●</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="readerApp" class="app is-loading">
+        <header class="toolbar">
+            <div class="brand">
+                <img src="assets/images/assistant-logo-cutout.png" alt="شعار المساعد الذكي" class="brand-logo">
+                <h1 class="brand-title">المساعد الذكي</h1>
+            </div>
+
+            <div class="toolbar-tools">
+                <button id="themeToggle" class="theme-toggle" type="button" aria-label="تبديل الوضع">🌙</button>
+                <div class="time-widget" aria-label="الوقت والتاريخ الحالي">
+                    <strong id="clockTime">--:--</strong>
+                    <span id="clockDate">--</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <section class="hero" aria-label="رسالة ترحيب">
+                <p class="hello">أهلاً بيك</p>
+                <h2>اختار الخدمة المطلوبة</h2>
+                <p>اضغط على الخدمة، والمساعد هيعرض لك المطلوب بشكل واضح ومباشر.</p>
+            </section>
+
+            <section class="news-panel" aria-label="أخبار وتنبيهات">
+                <div class="news-label">تنبيهات</div>
+                <div class="ticker" id="ticker"></div>
+            </section>
+
+            <div class="calm-separator" aria-hidden="true">
+                <span></span>
+            </div>
+
+            <section id="menuPanel" class="menu-panel" aria-label="الخدمات الرئيسية">
+                <div class="section-head">
+                    <h2>الخدمات الرئيسية</h2>
+                    <span>اختار الخدمة بضغطة واحدة</span>
+                </div>
+
+                <div id="servicesGrid" class="services-grid"></div>
+
+                <button id="showSearchBtn" class="secondary-btn" type="button">
+                    <span aria-hidden="true">🤖</span>
+                    لم أجد ما أبحث عنه
+                </button>
+
+                <div class="gallery-divider" aria-label="لمسات بصرية للمساعد">
+                    <span></span>
+                    <b>معرض المساعد</b>
+                    <span></span>
+                </div>
+
+                <section class="gallery-strip" aria-label="صور توضيحية">
+                    <div id="galleryTrack" class="gallery-track"></div>
+                </section>
+
+                <div id="inputGroup" class="input-group hidden">
+                    <input id="userInput" placeholder="اكتب اسم الخدمة، مثال: ورق الوفاة" autocomplete="off">
+                    <button id="sendBtn" class="send-btn" type="button">إرسال</button>
+                </div>
+            </section>
+
+            <section id="assistantPanel" class="assistant-panel hidden" aria-label="رد المساعد">
+                <button id="floatingBackBtn" class="floating-back" type="button" aria-label="الرجوع للخدمات الرئيسية">↩</button>
+                <section id="chatArea" class="chat-area" aria-live="polite"></section>
+                <button id="backToServicesBtn" class="back-btn" type="button">
+                    <span aria-hidden="true">↩</span>
+                    الرجوع إلى الخدمات الرئيسية
+                </button>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <span>Design by : Eng Bassem Ashraf</span>
+        </footer>
+    </div>
+
+    <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="عرض الصورة">
+        <div class="image-modal-bar">
+            <strong id="modalImageTitle">صورة توضيحية</strong>
+            <div class="image-tools">
+                <button type="button" data-image-tool="zoom-in" aria-label="تكبير الصورة">＋</button>
+                <button type="button" data-image-tool="zoom-out" aria-label="تصغير الصورة">－</button>
+                <button type="button" data-image-tool="reset" aria-label="إعادة حجم الصورة">↺</button>
+                <button type="button" data-image-tool="close" aria-label="إغلاق الصورة">×</button>
+            </div>
+        </div>
+        <div id="imageStage" class="image-stage">
+            <img id="modalImage" alt="">
+        </div>
+    </div>
+
+    <script src="data/services.js"></script>
+    <script src="data/announcements.js"></script>
+    <script src="data/gallery.js"></script>
+    <script src="scripts/app.js"></script>
+</body>
+</html>
