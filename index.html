@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>المساعد الذكي - مكاتب الصحة</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/main.css?v=20260621-4">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
         <div class="splash-mark">
-            <img src="assets/images/assistant-logo.jpg" alt="شعار المساعد الذكي" class="splash-logo">
+            <img src="assets/images/assistant-logo.png" alt="شعار المساعد الذكي" class="splash-logo">
             <div class="splash-loader" aria-label="جاري التحميل">
                 <span class="loader-walker">●</span>
             </div>
@@ -19,7 +19,7 @@
     <div id="readerApp" class="app is-loading">
         <header class="toolbar">
             <div class="brand">
-                <img src="assets/images/assistant-logo-cutout.png" alt="شعار المساعد الذكي" class="brand-logo">
+                <img src="assets/images/assistant-logo.png" alt="شعار المساعد الذكي" class="brand-logo">
                 <h1 class="brand-title">المساعد الذكي</h1>
             </div>
 
@@ -67,7 +67,7 @@
                     <span></span>
                 </div>
 
-                <section class="gallery-strip" aria-label="صور توضيحية">
+                <section id="galleryStrip" class="gallery-strip" aria-label="صور توضيحية">
                     <div id="galleryTrack" class="gallery-track"></div>
                 </section>
 
@@ -80,6 +80,10 @@
             <section id="assistantPanel" class="assistant-panel hidden" aria-label="رد المساعد">
                 <button id="floatingBackBtn" class="floating-back" type="button" aria-label="الرجوع للخدمات الرئيسية">↩</button>
                 <section id="chatArea" class="chat-area" aria-live="polite"></section>
+                <div id="assistantInputGroup" class="input-group assistant-input hidden">
+                    <input id="assistantUserInput" placeholder="مثال: عايز أعرف ورق الوفاة" autocomplete="off">
+                    <button id="assistantSendBtn" class="send-btn" type="button">إرسال</button>
+                </div>
                 <button id="backToServicesBtn" class="back-btn" type="button">
                     <span aria-hidden="true">↩</span>
                     الرجوع إلى الخدمات الرئيسية
@@ -92,6 +96,10 @@
         </footer>
     </div>
 
+    <button id="assistantFab" class="assistant-fab" type="button" aria-label="فتح المساعد الذكي">
+        <img src="assets/images/assistant-logo.png" alt="">
+    </button>
+
     <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="عرض الصورة">
         <div class="image-modal-bar">
             <strong id="modalImageTitle">صورة توضيحية</strong>
@@ -99,6 +107,8 @@
                 <button type="button" data-image-tool="zoom-in" aria-label="تكبير الصورة">＋</button>
                 <button type="button" data-image-tool="zoom-out" aria-label="تصغير الصورة">－</button>
                 <button type="button" data-image-tool="reset" aria-label="إعادة حجم الصورة">↺</button>
+                <button type="button" data-image-tool="previous" aria-label="الصورة السابقة">›</button>
+                <button type="button" data-image-tool="next" aria-label="الصورة التالية">‹</button>
                 <button type="button" data-image-tool="close" aria-label="إغلاق الصورة">×</button>
             </div>
         </div>
@@ -107,9 +117,9 @@
         </div>
     </div>
 
-    <script src="data/services.js"></script>
-    <script src="data/announcements.js"></script>
-    <script src="data/gallery.js"></script>
-    <script src="scripts/app.js"></script>
+    <script src="data/services.js?v=20260621-4"></script>
+    <script src="data/announcements.js?v=20260621-4"></script>
+    <script src="data/gallery.js?v=20260621-4"></script>
+    <script src="scripts/app.js?v=20260621-4"></script>
 </body>
 </html>

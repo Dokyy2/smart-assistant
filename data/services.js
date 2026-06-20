@@ -5,7 +5,7 @@ window.services = [
         desc: "شهادة الميلاد وأوراق المولود",
         main: true,
         special: "",
-        tutorial: "tutorials/birth/index.html",
+        tutorial: "tutorials/birth/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "ميلاد", "مولود", "الولادة", "الولاده", "طفل", "نونو", "بيبي", "خلفنا",
@@ -34,7 +34,7 @@ window.services = [
         desc: "تطعيمات الأطفال وتحليل كعب الرجل",
         main: true,
         special: "",
-        tutorial: "tutorials/vaccines/index.html",
+        tutorial: "tutorials/vaccines/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "تطعيم", "تطعمات", "تطاعيم", "حقنة", "حقنه", "نقط", "شلل الأطفال",
@@ -57,7 +57,7 @@ window.services = [
         desc: "تصريح الدفن وشهادة الوفاة",
         main: true,
         special: "",
-        tutorial: "tutorials/death/index.html",
+        tutorial: "tutorials/death/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "وفاة", "وفاه", "وفات", "توفى", "توفي", "توفاه", "المتوفي",
@@ -87,7 +87,8 @@ window.services = [
         desc: "فروع واتجاهات التأمين الصحي",
         main: true,
         special: "insurance",
-        tutorial: "tutorials/insurance/index.html",
+        tutorial: "",
+        showMore: false,
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "تأمين", "التأمين", "التأمين الصحي", "علاج", "بطاقة تأمين",
@@ -116,7 +117,7 @@ window.services = [
         desc: "تنظيم الأسرة والوسائل المتاحة",
         main: true,
         special: "",
-        tutorial: "tutorials/family/index.html",
+        tutorial: "tutorials/family/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "تنظيم", "تنظيم الأسرة", "تنميه الاسره", "الوسيلة", "الوسيله", "وسيله",
@@ -139,7 +140,7 @@ window.services = [
         desc: "الأماكن التابعة ومواعيد العمل",
         main: true,
         special: "",
-        tutorial: "tutorials/hospitals/index.html",
+        tutorial: "tutorials/hospitals/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "مستشفى", "مستشفيات", "المراكز الطبية", "وحدة صحية", "تخصصات", "مواعيد العمل"
@@ -153,7 +154,7 @@ window.services = [
         desc: "المكاتب النبطشية في الإجازات",
         main: true,
         special: "emergency",
-        tutorial: "tutorials/emergency/index.html",
+        tutorial: "tutorials/emergency/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "طوارئ", "اجازة", "إجازة", "اجازه", "عطلة", "عطله", "رسمية", "المكتب مقفل",
@@ -176,7 +177,7 @@ window.services = [
         desc: "كل الخدمات والإجراءات في ملف واحد",
         main: false,
         special: "",
-        tutorial: "tutorials/guide/index.html",
+        tutorial: "tutorials/guide/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "دليل", "خدمات", "قائمة", "كتيب", "الكامل", "اجراءات", "فهرس", "كل الخدمات",
@@ -194,7 +195,7 @@ window.services = [
         desc: "فكرة المساعد وطرق التواصل",
         main: false,
         special: "",
-        tutorial: "tutorials/about/index.html",
+        tutorial: "tutorials/about/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
             "اعرفني", "من انت", "مين انت", "بتعمل ايه",

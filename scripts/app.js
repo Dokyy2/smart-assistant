@@ -12,7 +12,12 @@ const servicesGrid = document.getElementById("servicesGrid");
 const chatArea = document.getElementById("chatArea");
 const inputGroup = document.getElementById("inputGroup");
 const userInput = document.getElementById("userInput");
+const assistantInputGroup = document.getElementById("assistantInputGroup");
+const assistantUserInput = document.getElementById("assistantUserInput");
+const assistantSendBtn = document.getElementById("assistantSendBtn");
+const assistantFab = document.getElementById("assistantFab");
 const ticker = document.getElementById("ticker");
+const galleryStrip = document.getElementById("galleryStrip");
 const galleryTrack = document.getElementById("galleryTrack");
 const clockTime = document.getElementById("clockTime");
 const clockDate = document.getElementById("clockDate");
@@ -25,6 +30,13 @@ const imageStage = document.getElementById("imageStage");
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
 let imageDrag = null;
+let currentGalleryIndex = 0;
+let modalPointers = new Map();
+let pinchStart = null;
+let galleryDrag = null;
+let galleryAutoFrame = null;
+let galleryPausedUntil = 0;
+let tickerAutoFrame = null;
 
 function renderMainMenu() {
     servicesGrid.innerHTML = "";
@@ -58,34 +70,81 @@ function renderTicker() {
     const shuffled = shuffleItems(announcements);
     const selected = [...fixedAnnouncements, ...shuffled.slice(0, Math.min(7, shuffled.length))];
     const items = selected.map((text, index) => `<span class="ticker-item ${index < fixedAnnouncements.length ? "is-fixed" : ""}">${text}</span>`).join("");
-    ticker.innerHTML = `<div class="ticker-track">${items}${items}</div>`;
+    ticker.innerHTML = `<div class="ticker-track">${items}${items}${items}${items}${items}${items}</div>`;
+    startTickerAutoScroll();
+}
+
+function startTickerAutoScroll() {
+    cancelAnimationFrame(tickerAutoFrame);
+    const track = ticker.firstElementChild;
+    const resetPoint = track ? track.scrollWidth / 2 : 0;
+    ticker.scrollLeft = resetPoint;
+
+    const move = () => {
+        if (track) {
+            ticker.scrollLeft -= 0.75;
+            if (ticker.scrollLeft <= 0) ticker.scrollLeft = resetPoint;
+        }
+        tickerAutoFrame = requestAnimationFrame(move);
+    };
+
+    tickerAutoFrame = requestAnimationFrame(move);
 }
 
 function renderGallery() {
     if (!galleryItems.length) return;
 
-    const cards = galleryItems.map(item => `
-        <button class="gallery-card" type="button" data-gallery-src="${item.src}" data-gallery-title="${item.title}" data-gallery-alt="${item.alt}">
+    const cards = galleryItems.map((item, index) => `
+        <button class="gallery-card" type="button" data-gallery-index="${index}" data-gallery-src="${item.src}" data-gallery-title="${item.title}" data-gallery-alt="${item.alt}">
             <img src="${item.src}" alt="${item.alt}">
             <span>${item.title}</span>
         </button>
     `).join("");
 
-    galleryTrack.innerHTML = `${cards}${cards}${cards}`;
+    galleryTrack.innerHTML = `${cards}${cards}${cards}${cards}${cards}${cards}`;
+    startGalleryAutoScroll();
+}
+
+function startGalleryAutoScroll() {
+    cancelAnimationFrame(galleryAutoFrame);
+    const move = () => {
+        if (!galleryStrip.classList.contains("is-dragging") && Date.now() >= galleryPausedUntil) {
+            galleryStrip.scrollLeft += 0.55;
+            const limit = galleryTrack.scrollWidth / 2;
+            if (galleryStrip.scrollLeft >= limit) galleryStrip.scrollLeft = 0;
+        }
+        galleryAutoFrame = requestAnimationFrame(move);
+    };
+    galleryAutoFrame = requestAnimationFrame(move);
+}
+
+function pauseGalleryAutoScroll(delay = 3000) {
+    galleryPausedUntil = Date.now() + delay;
 }
 
 function updateModalImage() {
     modalImage.style.transform = `translate(${imageOffset.x}px, ${imageOffset.y}px) scale(${imageScale})`;
 }
 
-function openImageModal(source, title, alt) {
+function openImageModal(source, title, alt, index = 0) {
+    currentGalleryIndex = index;
     imageScale = 1;
     imageOffset = { x: 0, y: 0 };
+    modalPointers.clear();
+    pinchStart = null;
     modalImage.src = source;
     modalImage.alt = alt;
     modalImageTitle.textContent = title;
     updateModalImage();
     imageModal.classList.remove("hidden");
+}
+
+function openGalleryIndex(index) {
+    if (!galleryItems.length) return;
+    const total = galleryItems.length;
+    const safeIndex = (index + total) % total;
+    const item = galleryItems[safeIndex];
+    openImageModal(item.src, item.title, item.alt, safeIndex);
 }
 
 function closeImageModal() {
@@ -176,6 +235,7 @@ function getExtraIntro(serviceName, originalText) {
 }
 
 function enterAssistantMode() {
+    document.body.classList.add("assistant-open");
     menuPanel.classList.add("hidden");
     assistantPanel.classList.remove("hidden");
     assistantPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -183,20 +243,26 @@ function enterAssistantMode() {
 
 function backToServices() {
     window.speechSynthesis?.cancel();
+    document.body.classList.remove("assistant-open");
     assistantPanel.classList.add("hidden");
     menuPanel.classList.remove("hidden");
     chatArea.innerHTML = "";
     inputGroup.classList.add("hidden");
+    assistantInputGroup.classList.add("hidden");
     userInput.value = "";
+    assistantUserInput.value = "";
     menuPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function selectService(serviceName, originalText = "", addUserChoice = true) {
+function selectService(serviceName, originalText = "", addUserChoice = true, resetChat = true) {
     const service = serviceByName.get(serviceName);
     if (!service) return;
 
     enterAssistantMode();
-    chatArea.innerHTML = "";
+    if (resetChat) {
+        chatArea.innerHTML = "";
+        assistantInputGroup.classList.add("hidden");
+    }
 
     if (addUserChoice) addMessage(service.name, "user");
 
@@ -207,8 +273,8 @@ function selectService(serviceName, originalText = "", addUserChoice = true) {
         let response = `<span class="response-title">${service.icon} ${service.name}</span>`;
         response += `${getExtraIntro(service.name, originalText)}${service.msg}`;
 
-        if (service.tutorial) {
-            response += `<a href="${service.tutorial}" class="btn-link">عرض المزيد</a>`;
+        if (service.showMore !== false && service.tutorial) {
+            response += `<a href="${service.tutorial}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
         } else if (service.link) {
             response += `<a href="${service.link}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
         }
@@ -220,30 +286,48 @@ function selectService(serviceName, originalText = "", addUserChoice = true) {
 function startTextAssistant() {
     enterAssistantMode();
     chatArea.innerHTML = "";
-    inputGroup.classList.remove("hidden");
+    assistantInputGroup.classList.remove("hidden");
 
     showTyping();
     setTimeout(() => {
         removeTyping();
         addMessage(getAssistantWelcome(), "bot", "notice-msg");
-        userInput.focus();
+        assistantUserInput.focus();
     }, 1300);
 }
 
 function getAssistantWelcome() {
-    return `👋 أهلاً بيك<br><br>
-لو محتار تبدأ منين أو مش عارف الإجراءات تمشي إزاي، أنا هنا علشان أساعدك 🤍<br><br>
-💬 قولّي عايز تعمل إيه<br>
-وأنا هقولك تعمل إيه خطوة خطوة بشكل بسيط وواضح<br><br>
-مثال: <b>عايز أطلع شهادة ميلاد</b> أو <b>عايز أعرف ورق الوفاة</b>.`;
+    return `
+        👋 أهلاً بيك<br><br>
+        لو محتار تبدأ منين أو مش عارف الإجراءات تمشي إزاي… أنا هنا علشان أساعدك 🤍<br><br>
+        💬 قولّي عايز تعمل إيه<br>
+        وأنا هقولك تعمل إيه خطوة خطوة بشكل بسيط وواضح<br><br>
+        ✨ <b>جرب تدوس هنا دلوقتي:</b><br>
+        <button class="option-btn" type="button" data-quick-send="عايز أطلع شهادة ميلاد">👉 عايز أطلع شهادة ميلاد</button><br>
+        🔹 خدمات تقدر تسأل عنها:<br>
+        التطعيمات - الوفاة - تنمية الأسرة - عن المساعد
+    `;
+}
+
+function quickSend(text) {
+    addMessage(text, "user");
+    showTyping();
+    setTimeout(() => {
+        removeTyping();
+        const matches = detectServices(text);
+        if (matches.length > 0) {
+            selectService(matches[0].name, text, false, false);
+        }
+    }, 1000);
 }
 
 function handleSend() {
-    const text = userInput.value.trim();
+    const activeInput = assistantInputGroup.classList.contains("hidden") ? userInput : assistantUserInput;
+    const text = activeInput.value.trim();
     if (!text) return;
 
     addMessage(text, "user");
-    userInput.value = "";
+    activeInput.value = "";
 
     showTyping();
     setTimeout(() => {
@@ -258,7 +342,7 @@ function handleSend() {
             });
             addMessage(html, "bot");
         } else if (matches.length === 1) {
-            selectService(matches[0].name, text, false);
+            selectService(matches[0].name, text, false, false);
         } else {
             addMessage("ممكن توضح أكتر؟ ولو حابب، ارجع للخدمات الرئيسية واختار من الأزرار.", "bot", "notice-msg");
         }
@@ -332,7 +416,11 @@ function speakMessage(message) {
 
     const clone = message.cloneNode(true);
     clone.querySelector(".message-actions")?.remove();
-    const text = clone.innerText.trim();
+    const text = cleanSpeechText(clone.innerText.trim());
+    if (!text) {
+        showTinyFeedback(message, "لا يوجد نص للقراءة");
+        return;
+    }
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -340,10 +428,20 @@ function speakMessage(message) {
     const egyptianVoice = voices.find(voice => voice.lang.toLowerCase() === "ar-eg")
         || voices.find(voice => voice.lang.toLowerCase().startsWith("ar"));
     if (egyptianVoice) utterance.voice = egyptianVoice;
+    else showTinyFeedback(message, "ثبّت صوت عربي من إعدادات ويندوز");
     utterance.lang = egyptianVoice?.lang || "ar-EG";
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
     showTinyFeedback(message, "جاري القراءة");
+}
+
+function cleanSpeechText(text) {
+    return text
+        .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "")
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/WhatsApp|Email/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
 function showTinyFeedback(message, text) {
@@ -386,6 +484,8 @@ function finishSplash() {
 
 document.getElementById("showSearchBtn").addEventListener("click", startTextAssistant);
 document.getElementById("sendBtn").addEventListener("click", handleSend);
+assistantSendBtn.addEventListener("click", handleSend);
+assistantFab.addEventListener("click", startTextAssistant);
 document.getElementById("backToServicesBtn").addEventListener("click", backToServices);
 document.getElementById("floatingBackBtn").addEventListener("click", backToServices);
 
@@ -398,10 +498,21 @@ userInput.addEventListener("keydown", event => {
     if (event.key === "Enter") handleSend();
 });
 
+assistantUserInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") handleSend();
+});
+
 document.addEventListener("click", event => {
     const serviceButton = event.target.closest("[data-service]");
     if (serviceButton) {
-        selectService(serviceButton.dataset.service);
+        const fromChat = Boolean(event.target.closest("#chatArea"));
+        selectService(serviceButton.dataset.service, "", true, !fromChat);
+        return;
+    }
+
+    const quickButton = event.target.closest("[data-quick-send]");
+    if (quickButton) {
+        quickSend(quickButton.dataset.quickSend);
         return;
     }
 
@@ -422,12 +533,6 @@ document.addEventListener("click", event => {
         return;
     }
 
-    const galleryCard = event.target.closest("[data-gallery-src]");
-    if (galleryCard) {
-        openImageModal(galleryCard.dataset.gallerySrc, galleryCard.dataset.galleryTitle, galleryCard.dataset.galleryAlt);
-        return;
-    }
-
     const imageTool = event.target.closest("[data-image-tool]");
     if (imageTool) {
         const tool = imageTool.dataset.imageTool;
@@ -438,6 +543,8 @@ document.addEventListener("click", event => {
             imageOffset = { x: 0, y: 0 };
             updateModalImage();
         }
+        if (tool === "previous") openGalleryIndex(currentGalleryIndex - 1);
+        if (tool === "next") openGalleryIndex(currentGalleryIndex + 1);
         if (tool === "close") closeImageModal();
     }
 });
@@ -452,12 +559,30 @@ imageStage.addEventListener("wheel", event => {
 }, { passive: false });
 
 imageStage.addEventListener("pointerdown", event => {
-    if (imageScale <= 1) return;
-    imageDrag = { x: event.clientX, y: event.clientY, offsetX: imageOffset.x, offsetY: imageOffset.y };
+    modalPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (modalPointers.size === 2) {
+        const points = [...modalPointers.values()];
+        pinchStart = { distance: getDistance(points[0], points[1]), scale: imageScale };
+        imageDrag = null;
+    } else if (imageScale > 1) {
+        imageDrag = { x: event.clientX, y: event.clientY, offsetX: imageOffset.x, offsetY: imageOffset.y };
+    }
     imageStage.setPointerCapture(event.pointerId);
 });
 
 imageStage.addEventListener("pointermove", event => {
+    if (modalPointers.has(event.pointerId)) {
+        modalPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+
+    if (modalPointers.size === 2 && pinchStart) {
+        const points = [...modalPointers.values()];
+        const nextDistance = getDistance(points[0], points[1]);
+        imageScale = Math.min(3.6, Math.max(0.7, pinchStart.scale * (nextDistance / pinchStart.distance)));
+        updateModalImage();
+        return;
+    }
+
     if (!imageDrag) return;
     imageOffset = {
         x: imageDrag.offsetX + event.clientX - imageDrag.x,
@@ -466,9 +591,73 @@ imageStage.addEventListener("pointermove", event => {
     updateModalImage();
 });
 
-imageStage.addEventListener("pointerup", () => {
+imageStage.addEventListener("pointerup", event => {
+    modalPointers.delete(event.pointerId);
+    pinchStart = null;
     imageDrag = null;
 });
+
+imageStage.addEventListener("pointercancel", event => {
+    modalPointers.delete(event.pointerId);
+    pinchStart = null;
+    imageDrag = null;
+});
+
+function getDistance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+galleryStrip.addEventListener("pointerdown", event => {
+    pauseGalleryAutoScroll();
+    galleryStrip.classList.add("is-dragging");
+    galleryDrag = {
+        x: event.clientX,
+        y: event.clientY,
+        scrollLeft: galleryStrip.scrollLeft,
+        card: event.target.closest("[data-gallery-src]"),
+        moved: false
+    };
+    galleryStrip.setPointerCapture(event.pointerId);
+});
+
+galleryStrip.addEventListener("pointermove", event => {
+    if (!galleryDrag) return;
+    pauseGalleryAutoScroll();
+    const deltaX = event.clientX - galleryDrag.x;
+    const deltaY = event.clientY - galleryDrag.y;
+    if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) galleryDrag.moved = true;
+    galleryStrip.scrollLeft = galleryDrag.scrollLeft - deltaX;
+});
+
+galleryStrip.addEventListener("pointerup", event => {
+    pauseGalleryAutoScroll();
+    const tappedCard = galleryDrag?.card && !galleryDrag.moved ? galleryDrag.card : null;
+    galleryDrag = null;
+    galleryStrip.classList.remove("is-dragging");
+    if (galleryStrip.hasPointerCapture?.(event.pointerId)) {
+        galleryStrip.releasePointerCapture(event.pointerId);
+    }
+    if (tappedCard) {
+        openImageModal(
+            tappedCard.dataset.gallerySrc,
+            tappedCard.dataset.galleryTitle,
+            tappedCard.dataset.galleryAlt,
+            Number(tappedCard.dataset.galleryIndex || 0)
+        );
+    }
+});
+
+galleryStrip.addEventListener("pointercancel", event => {
+    pauseGalleryAutoScroll();
+    galleryDrag = null;
+    galleryStrip.classList.remove("is-dragging");
+    if (galleryStrip.hasPointerCapture?.(event.pointerId)) {
+        galleryStrip.releasePointerCapture(event.pointerId);
+    }
+});
+
+galleryStrip.addEventListener("pointerenter", () => pauseGalleryAutoScroll());
+galleryStrip.addEventListener("pointerleave", () => pauseGalleryAutoScroll());
 
 window.addEventListener("load", () => {
     initTheme();
@@ -477,5 +666,5 @@ window.addEventListener("load", () => {
     renderGallery();
     updateClock();
     setInterval(updateClock, 1000);
-    setTimeout(finishSplash, 1500);
+    setTimeout(finishSplash, 2500);
 });

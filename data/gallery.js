@@ -5,7 +5,7 @@ window.galleryItems = [
         alt: "شعار المساعد الذكي"
     },
     {
-        src: "assets/images/assistant-logo-cutout.png",
+        src: "assets/images/assistant-logo.png",
         title: "هوية المساعد الذكي",
         alt: "شعار المساعد الذكي بخلفية شفافة"
     }
