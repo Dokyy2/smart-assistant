@@ -122,6 +122,102 @@ function pauseGalleryAutoScroll(delay = 3000) {
     galleryPausedUntil = Date.now() + delay;
 }
 
+function renderHospitalsIntro() {
+    return `
+        <span class="response-title">📍 المناطق الطبية التابعة لمديرية الشئون الصحية بالقاهرة</span>
+        اختار المنطقة الطبية المطلوبة، والمساعد هيعرض لك مكاتب الصحة والمستشفيات التابعة لها بشكل واضح.<br><br>
+        <button class="option-btn area-choice" type="button" data-medical-area="waily">
+            منطقة الوايلي الطبية
+        </button>
+    `;
+}
+
+function renderWailyHospitals() {
+    return `
+        <span class="response-title">منطقة الوايلي الطبية</span>
+
+        <div class="hospital-office">
+            <h3>صحة الدمرداش</h3>
+            <p>المستشفيات التابعة لمكتب صحة الدمرداش</p>
+            ${renderHospitalList([
+                ["مستشفى الدمرداش", "56 شارع رمسيس، حي العباسية، القاهرة"],
+                ["مستشفى دار الشفاء", "375 شارع رمسيس، العباسية، القاهرة"],
+                ["مستشفى واحة الطب", "19 شارع مصر والسودان، امتداد أحمد سعيد، حدائق القبة، القاهرة"]
+            ])}
+        </div>
+
+        <div class="hospital-office">
+            <h3>صحة العباسية</h3>
+            <p>المستشفيات التابعة لمكتب صحة العباسية</p>
+            ${renderHospitalList([
+                ["مستشفى عين شمس التخصصى", "2 شارع الخليفة المأمون، العباسية، بجوار كلية التجارة عين شمس"],
+                ["مستشفى الزهراء الجامعى", "شارع المستشفى اليوناني، السرايات، الوايلي، القاهرة"],
+                ["مستشفى الايطالى", "17 شارع السرايات، العباسية، القاهرة"],
+                ["مستشفى اليونانى", "أحمد فؤاد عبد العزيز، السرايات، الوايلي، القاهرة"],
+                ["مستشفى اركان التخصصى", "126 أمام محطة مترو العباسية، القاهرة"],
+                ["مستشفى الجوى العام", "شارع أحمد سعيد، العباسية، الوايلي، القاهرة"]
+            ])}
+        </div>
+
+        <div class="hospital-office">
+            <h3>صحة الظاهر</h3>
+            <p>المستشفيات التابعة لمكتب صحة الظاهر</p>
+            ${renderHospitalList([
+                ["مستشفى السلام التخصصى", "أبو خودة، حي الظاهر، مدينة السلام، القاهرة"],
+                ["مستشفى النزهة", "2 النزهة، السكاكيني، حي الظاهر، القاهرة"],
+                ["مستشفى الأمل", "10 ركن الريس، القبيسي، حي الظاهر، القاهرة"]
+            ])}
+        </div>
+    `;
+}
+
+function renderHospitalList(items) {
+    return `
+        <div class="hospital-list">
+            ${items.map(([name, address]) => `
+                <article class="hospital-item">
+                    <strong>${name}</strong>
+                    <span>${address}</span>
+                </article>
+            `).join("")}
+        </div>
+    `;
+}
+
+function renderEmergencyGuide() {
+    const cards = Array.from({ length: 6 }, (_, index) => ({
+        title: index === 0 ? "مكتب صحة الدمرداش" : `مكتب طوارئ رقم ${index + 1}`,
+        area: index === 0 ? "منطقة الوايلي الطبية" : "منطقة طبية",
+        serves: index === 0 ? "يخدم منطقة الوايلي" : "يخدم المنطقة المحيطة",
+        days: "مفتوح أيام الإجازات والعطلات الرسمية",
+        services: "مواليد - وفيات - تطعيمات",
+        time: "من الساعة 8 صباحا حتى 6 مساءا",
+        map: "https://maps.app.goo.gl/96Hna7KCu4rshQVL7"
+    }));
+
+    return `
+        <span class="response-title">🚨 دليلك في الإجازات والطوارئ</span>
+        في أوقات الإجازات والعطلات الرسمية، ممكن تحتاج خدمة صحية مهمة ومش عارف تروح فين.<br><br>
+        علشان كده وفرنالك دليل بسيط وواضح يساعدك توصل لأقرب مكان يقدم لك الخدمة بدون تعب أو تأخير.<br><br>
+        اختار المكان المناسب من الكروت اللي تحت… واضغط علشان تروح مباشرة.
+
+        <div class="emergency-card-grid">
+            ${cards.map((card, index) => `
+                <a class="emergency-card" href="${card.map}" target="_blank" rel="noopener noreferrer" style="--delay:${index * 90}ms">
+                    <span class="emergency-card-badge">طوارئ</span>
+                    <strong>${card.title}</strong>
+                    <small>${card.area}</small>
+                    <p>${card.serves}</p>
+                    <p>${card.days}</p>
+                    <p>${card.services}</p>
+                    <b>${card.time}</b>
+                    <span class="map-action">افتح الاتجاهات</span>
+                </a>
+            `).join("")}
+        </div>
+    `;
+}
+
 function updateModalImage() {
     modalImage.style.transform = `translate(${imageOffset.x}px, ${imageOffset.y}px) scale(${imageScale})`;
 }
@@ -269,6 +365,16 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
     showTyping();
     setTimeout(() => {
         removeTyping();
+
+        if (service.customView === "hospitals") {
+            addMessage(renderHospitalsIntro(), "bot", "service-response response-hospitals");
+            return;
+        }
+
+        if (service.customView === "emergency") {
+            addMessage(renderEmergencyGuide(), "bot", "service-response response-emergency");
+            return;
+        }
 
         let response = `<span class="response-title">${service.icon} ${service.name}</span>`;
         response += `${getExtraIntro(service.name, originalText)}${service.msg}`;
@@ -519,6 +625,17 @@ document.addEventListener("click", event => {
     const actionButton = event.target.closest("[data-action='contact']");
     if (actionButton) {
         showContact();
+        return;
+    }
+
+    const medicalAreaButton = event.target.closest("[data-medical-area]");
+    if (medicalAreaButton) {
+        addMessage(medicalAreaButton.textContent.trim(), "user");
+        showTyping();
+        setTimeout(() => {
+            removeTyping();
+            addMessage(renderWailyHospitals(), "bot", "service-response response-hospitals");
+        }, 800);
         return;
     }
 

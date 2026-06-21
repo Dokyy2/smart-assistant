@@ -182,6 +182,7 @@ msg: `🌷 أهلاً بيكم<br><br>
         desc: "الأماكن التابعة ومواعيد العمل",
         main: true,
         special: "",
+        customView: "hospitals",
         tutorial: "tutorials/hospitals/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
@@ -196,6 +197,7 @@ msg: `🌷 أهلاً بيكم<br><br>
         desc: "المكاتب النبطشية في الإجازات",
         main: true,
         special: "emergency",
+        customView: "emergency",
         tutorial: "tutorials/emergency/guide.pdf",
         media: { image: "", gallery: [], audio: "" },
         keywords: [
