@@ -1,0 +1,27 @@
+{
+  "name": "المساعد الذكي - مكاتب الصحة",
+  "short_name": "المساعد الذكي",
+  "description": "من حقك تعرف ومن واجبنا نساعدك",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "orientation": "portrait",
+  "background_color": "#07152a",
+  "theme_color": "#1769d1",
+  "icons": [
+    {
+      "src": "assets/images/assistant-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/images/assistant-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

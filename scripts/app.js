@@ -588,6 +588,15 @@ function finishSplash() {
     readerApp.classList.remove("is-loading");
 }
 
+function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+        // The app still works normally if offline caching is unavailable.
+    });
+}
+
 document.getElementById("showSearchBtn").addEventListener("click", startTextAssistant);
 document.getElementById("sendBtn").addEventListener("click", handleSend);
 assistantSendBtn.addEventListener("click", handleSend);
@@ -783,5 +792,6 @@ window.addEventListener("load", () => {
     renderGallery();
     updateClock();
     setInterval(updateClock, 1000);
-    setTimeout(finishSplash, 2500);
+    registerServiceWorker();
+    setTimeout(finishSplash, 5000);
 });
