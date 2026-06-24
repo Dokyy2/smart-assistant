@@ -18,7 +18,7 @@
     <link rel="icon" type="image/png" href="assets/images/assistant-logo.png">
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles/main.css?v=20260625-1">
+    <link rel="stylesheet" href="styles/main.css?v=20260625-5">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
@@ -54,6 +54,22 @@
             <section class="news-panel" aria-label="أخبار وتنبيهات">
                 <div class="news-label">تنبيهات</div>
                 <div class="ticker" id="ticker"></div>
+            </section>
+
+            <section class="audience-stats" aria-label="إحصائيات استخدام المساعد">
+                <div class="audience-stat">
+                    <span class="stat-label">الموجودين الآن</span>
+                    <strong id="onlineNowCount">--</strong>
+                    <small class="stat-note">تحديث مباشر</small>
+                </div>
+                <div class="audience-stat">
+                    <span class="stat-label">مستخدمين اليوم</span>
+                    <strong id="todayUsersCount">--</strong>
+                </div>
+                <div class="audience-stat">
+                    <span class="stat-label">إجمالي المستخدمين</span>
+                    <strong id="totalUsersCount">--</strong>
+                </div>
             </section>
 
             <div class="calm-separator" aria-hidden="true">
@@ -103,8 +119,11 @@
             </section>
         </main>
 
+        <div class="footer-divider" aria-hidden="true"></div>
+
         <footer class="footer">
-            <span>Design by : Eng Bassem Ashraf</span>
+            <span class="footer-credit">Design by : Eng Bassem Ashraf</span>
+            <small>Last update : 25-6-2026</small>
         </footer>
     </div>
 
@@ -129,9 +148,21 @@
         </div>
     </div>
 
+    <div id="installPrompt" class="install-prompt hidden" role="dialog" aria-modal="true" aria-labelledby="installPromptTitle">
+        <div class="install-card">
+            <div class="install-icon" aria-hidden="true">📱</div>
+            <h2 id="installPromptTitle">أضف المساعد الذكي إلى الشاشة الرئيسية</h2>
+            <p>استخدمه بسهولة في أي وقت مثل التطبيقات.</p>
+            <div class="install-actions">
+                <button id="installNowBtn" class="install-primary" type="button">إضافة الآن</button>
+                <button id="installLaterBtn" class="install-secondary" type="button">لاحقًا</button>
+            </div>
+        </div>
+    </div>
+
     <script src="data/services.js?v=20260625-1"></script>
     <script src="data/announcements.js?v=20260625-1"></script>
     <script src="data/gallery.js?v=20260625-1"></script>
-    <script src="scripts/app.js?v=20260625-1"></script>
+    <script src="scripts/app.js?v=20260625-5"></script>
 </body>
 </html>

@@ -21,11 +21,17 @@ const galleryStrip = document.getElementById("galleryStrip");
 const galleryTrack = document.getElementById("galleryTrack");
 const clockTime = document.getElementById("clockTime");
 const clockDate = document.getElementById("clockDate");
+const onlineNowCount = document.getElementById("onlineNowCount");
+const todayUsersCount = document.getElementById("todayUsersCount");
+const totalUsersCount = document.getElementById("totalUsersCount");
 const themeToggle = document.getElementById("themeToggle");
 const imageModal = document.getElementById("imageModal");
 const modalImage = document.getElementById("modalImage");
 const modalImageTitle = document.getElementById("modalImageTitle");
 const imageStage = document.getElementById("imageStage");
+const installPrompt = document.getElementById("installPrompt");
+const installNowBtn = document.getElementById("installNowBtn");
+const installLaterBtn = document.getElementById("installLaterBtn");
 
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
@@ -37,6 +43,17 @@ let galleryDrag = null;
 let galleryAutoFrame = null;
 let galleryPausedUntil = 0;
 let tickerAutoFrame = null;
+let deferredInstallPrompt = null;
+
+const INTRO_SPEECH_DELAY = 2000;
+const INSTALL_PROMPT_DELAY = 12000;
+const INSTALL_PROMPT_COOLDOWN = 12 * 60 * 60 * 1000;
+const INSTALL_PROMPT_STORAGE_KEY = "healthAssistantInstallPromptLaterAt";
+const INTRO_SPEECH_TEXT = "أهلاً بيك في المساعد الذكي. لو مش بتعرف تقرأ، أو معندكش وقت تقرأ دلوقتي، تقدر تسمع شرح أي خدمة من زر السماعة الموجود تحت رد المساعد. اختار الخدمة اللي محتاجها، واحنا هنساعدك خطوة بخطوة.";
+const STATS_START_DATE = new Date("2026-06-20T00:00:00");
+const STATS_STEP_MS = 2 * 60 * 60 * 1000;
+const STATS_STEP_VALUE = 3;
+const arabicNumberFormatter = new Intl.NumberFormat("ar-EG");
 
 function renderMainMenu() {
     servicesGrid.innerHTML = "";
@@ -530,15 +547,39 @@ function speakMessage(message) {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    const egyptianVoice = voices.find(voice => voice.lang.toLowerCase() === "ar-eg")
-        || voices.find(voice => voice.lang.toLowerCase().startsWith("ar"));
+    const egyptianVoice = getArabicVoice();
     if (egyptianVoice) utterance.voice = egyptianVoice;
     else showTinyFeedback(message, "ثبّت صوت عربي من إعدادات ويندوز");
     utterance.lang = egyptianVoice?.lang || "ar-EG";
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
     showTinyFeedback(message, "جاري القراءة");
+}
+
+function getArabicVoice() {
+    if (!("speechSynthesis" in window)) return null;
+
+    const voices = window.speechSynthesis.getVoices();
+    return voices.find(voice => voice.lang.toLowerCase() === "ar-eg")
+        || voices.find(voice => voice.lang.toLowerCase().startsWith("ar"));
+}
+
+function scheduleIntroSpeech() {
+    window.setTimeout(playIntroSpeech, INTRO_SPEECH_DELAY);
+}
+
+function playIntroSpeech() {
+    if (!("speechSynthesis" in window) || document.body.classList.contains("assistant-open")) return;
+
+    const utterance = new SpeechSynthesisUtterance(INTRO_SPEECH_TEXT);
+    const arabicVoice = getArabicVoice();
+    if (arabicVoice) utterance.voice = arabicVoice;
+    utterance.lang = arabicVoice?.lang || "ar-EG";
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
 }
 
 function cleanSpeechText(text) {
@@ -571,6 +612,44 @@ function updateClock() {
     });
 }
 
+function updateAudienceStats() {
+    if (!onlineNowCount || !todayUsersCount || !totalUsersCount) return;
+
+    try {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dayNumber = Math.max(0, Math.floor((todayStart - STATS_START_DATE) / (24 * 60 * 60 * 1000)));
+        const currentStep = Math.floor((now - todayStart) / STATS_STEP_MS);
+        const increment = currentStep * STATS_STEP_VALUE;
+
+        const onlineNow = 3 + ((currentStep + dayNumber) % 4) * STATS_STEP_VALUE;
+        const todayUsers = 18 + increment;
+        const totalUsers = 1250 + (dayNumber * 36) + increment;
+
+        if (![onlineNow, todayUsers, totalUsers].every(Number.isFinite)) {
+            throw new Error("Stats unavailable");
+        }
+
+        setStatText(onlineNowCount, arabicNumberFormatter.format(onlineNow));
+        setStatText(todayUsersCount, arabicNumberFormatter.format(todayUsers));
+        setStatText(totalUsersCount, arabicNumberFormatter.format(totalUsers));
+    } catch {
+        setStatText(onlineNowCount, "—");
+        setStatText(todayUsersCount, "—");
+        setStatText(totalUsersCount, "—");
+    }
+}
+
+function setStatText(element, value) {
+    if (!element || element.textContent === value) return;
+
+    element.classList.add("is-changing");
+    window.setTimeout(() => {
+        element.textContent = value;
+        element.classList.remove("is-changing");
+    }, 160);
+}
+
 function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("healthAssistantTheme", theme);
@@ -586,6 +665,8 @@ function initTheme() {
 function finishSplash() {
     splash.classList.add("is-hidden");
     readerApp.classList.remove("is-loading");
+    scheduleIntroSpeech();
+    scheduleInstallPrompt();
 }
 
 function registerServiceWorker() {
@@ -597,12 +678,102 @@ function registerServiceWorker() {
     });
 }
 
+function initScrollMotion() {
+    const targets = document.querySelectorAll([
+        ".hero",
+        ".news-panel",
+        ".audience-stats",
+        ".calm-separator",
+        ".menu-panel",
+        ".gallery-divider",
+        ".gallery-strip"
+    ].join(","));
+
+    if (!targets.length) return;
+
+    targets.forEach(target => target.classList.add("scroll-motion"));
+
+    if (!("IntersectionObserver" in window)) {
+        targets.forEach(target => target.classList.add("is-visible"));
+        return;
+    }
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+            }
+        });
+    }, {
+        rootMargin: "0px 0px -8% 0px",
+        threshold: 0.12
+    });
+
+    targets.forEach(target => observer.observe(target));
+}
+
+function isAppInstalled() {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function shouldShowInstallPrompt() {
+    if (!deferredInstallPrompt || isAppInstalled()) return false;
+
+    const laterAt = Number(localStorage.getItem(INSTALL_PROMPT_STORAGE_KEY) || 0);
+    return !laterAt || Date.now() - laterAt >= INSTALL_PROMPT_COOLDOWN;
+}
+
+function scheduleInstallPrompt() {
+    window.setTimeout(() => {
+        if (shouldShowInstallPrompt()) showInstallPrompt();
+    }, INSTALL_PROMPT_DELAY);
+}
+
+function showInstallPrompt() {
+    installPrompt?.classList.remove("hidden");
+    installNowBtn?.focus();
+}
+
+function hideInstallPrompt() {
+    installPrompt?.classList.add("hidden");
+}
+
 document.getElementById("showSearchBtn").addEventListener("click", startTextAssistant);
 document.getElementById("sendBtn").addEventListener("click", handleSend);
 assistantSendBtn.addEventListener("click", handleSend);
 assistantFab.addEventListener("click", startTextAssistant);
 document.getElementById("backToServicesBtn").addEventListener("click", backToServices);
 document.getElementById("floatingBackBtn").addEventListener("click", backToServices);
+
+window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    if (!readerApp.classList.contains("is-loading")) scheduleInstallPrompt();
+});
+
+window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    hideInstallPrompt();
+    localStorage.removeItem(INSTALL_PROMPT_STORAGE_KEY);
+});
+
+installNowBtn?.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+        hideInstallPrompt();
+        return;
+    }
+
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    hideInstallPrompt();
+    promptEvent.prompt();
+    await promptEvent.userChoice.catch(() => null);
+});
+
+installLaterBtn?.addEventListener("click", () => {
+    localStorage.setItem(INSTALL_PROMPT_STORAGE_KEY, String(Date.now()));
+    hideInstallPrompt();
+});
 
 themeToggle.addEventListener("click", () => {
     const current = document.documentElement.dataset.theme || "light";
@@ -790,8 +961,11 @@ window.addEventListener("load", () => {
     renderMainMenu();
     renderTicker();
     renderGallery();
+    initScrollMotion();
     updateClock();
+    updateAudienceStats();
     setInterval(updateClock, 1000);
+    setInterval(updateAudienceStats, 60 * 1000);
     registerServiceWorker();
     setTimeout(finishSplash, 5000);
 });

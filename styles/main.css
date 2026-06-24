@@ -70,6 +70,18 @@ button {
     display: none !important;
 }
 
+.scroll-motion {
+    opacity: 0;
+    transform: translateY(18px) scale(0.992);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.22, 0.9, 0.32, 1);
+    will-change: opacity, transform;
+}
+
+.scroll-motion.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
 .splash,
 .access-gate,
 .visual-app {
@@ -416,6 +428,90 @@ button {
     to { transform: translateX(0); }
 }
 
+.audience-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+    margin: -4px 0 12px;
+}
+
+.audience-stat {
+    position: relative;
+    overflow: hidden;
+    padding: 10px 11px;
+    border: 1px solid rgba(23, 105, 209, 0.16);
+    border-radius: 16px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--soft) 64%, var(--surface))),
+        var(--surface);
+    box-shadow: 0 9px 22px rgba(35, 67, 92, 0.06);
+}
+
+.audience-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--cyan), var(--primary));
+    opacity: 0.78;
+}
+
+.stat-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1.5;
+}
+
+.audience-stat strong {
+    display: block;
+    margin-top: 3px;
+    color: var(--primary-dark);
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-size: 1.54rem;
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.audience-stat strong.is-changing {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+}
+
+.audience-stat:first-child strong {
+    color: var(--teal);
+}
+
+.stat-note {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 0.64rem;
+    font-weight: 800;
+    line-height: 1.35;
+    opacity: 0.82;
+}
+
+.audience-stat:first-child .stat-label::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 4px rgba(14, 159, 154, 0.12), 0 0 12px rgba(14, 159, 154, 0.32);
+    animation: statLivePulse 2s ease-in-out infinite;
+}
+
+@keyframes statLivePulse {
+    0%, 100% { transform: scale(0.96); opacity: 0.72; }
+    50% { transform: scale(1.08); opacity: 1; }
+}
+
 .soft-divider {
     height: 1px;
     margin: 16px 10px;
@@ -738,14 +834,25 @@ button {
     50% { opacity: 1; transform: translateY(-2px); }
 }
 
+.footer-divider {
+    width: min(88%, 560px);
+    height: 1px;
+    margin: 4px auto 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(76, 201, 240, 0.9), rgba(23, 105, 209, 0.78), rgba(76, 201, 240, 0.9), transparent);
+    box-shadow: 0 0 10px rgba(76, 201, 240, 0.52), 0 0 24px rgba(23, 105, 209, 0.24);
+    animation: footerNeonLine 3.8s ease-in-out infinite;
+}
+
 .footer {
-    padding: 18px 16px 22px;
+    display: grid;
+    gap: 6px;
+    padding: 16px 16px 24px;
     text-align: center;
-    border-top: 1px solid var(--border);
     background: var(--surface);
 }
 
-.footer span {
+.footer-credit {
     position: relative;
     display: inline-block;
     overflow: hidden;
@@ -755,13 +862,25 @@ button {
     text-shadow: 0 0 12px rgba(214, 166, 64, 0.18);
 }
 
-.footer span::after {
+.footer-credit::after {
     content: "";
     position: absolute;
     inset: 0;
     transform: translateX(120%) skewX(-18deg);
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.78), transparent);
     animation: goldShine 5.5s ease-in-out infinite;
+}
+
+.footer small {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
+@keyframes footerNeonLine {
+    0%, 100% { opacity: 0.62; filter: brightness(0.95); }
+    50% { opacity: 1; filter: brightness(1.2); }
 }
 
 @keyframes goldShine {
@@ -847,6 +966,28 @@ button {
 
     .news-label {
         width: fit-content;
+    }
+
+    .audience-stats {
+        gap: 7px;
+        margin-top: -2px;
+    }
+
+    .audience-stat {
+        padding: 9px 8px;
+        border-radius: 14px;
+    }
+
+    .stat-label {
+        font-size: 0.64rem;
+    }
+
+    .audience-stat strong {
+        font-size: 1.26rem;
+    }
+
+    .stat-note {
+        font-size: 0.58rem;
     }
 
     .menu-panel {
@@ -1542,6 +1683,95 @@ button {
 
 .image-stage img:active {
     cursor: grabbing;
+}
+
+.install-prompt {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(7, 21, 42, 0.46);
+    backdrop-filter: blur(8px);
+}
+
+.install-card {
+    width: min(100%, 390px);
+    padding: 20px;
+    border: 1px solid rgba(23, 105, 209, 0.22);
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at top left, rgba(76, 201, 240, 0.16), transparent 12rem),
+        var(--surface);
+    color: var(--text);
+    box-shadow: 0 26px 70px rgba(7, 21, 42, 0.28);
+    text-align: center;
+    animation: installCardIn 0.34s ease both;
+}
+
+.install-icon {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 12px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--soft), rgba(14, 159, 154, 0.13));
+    font-size: 1.8rem;
+    box-shadow: 0 12px 24px rgba(23, 105, 209, 0.1);
+}
+
+.install-card h2 {
+    margin: 0;
+    color: var(--primary-dark);
+    font-size: 1.22rem;
+    line-height: 1.55;
+    font-weight: 900;
+}
+
+.install-card p {
+    margin: 9px 0 16px;
+    color: var(--muted);
+    line-height: 1.8;
+}
+
+.install-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.install-actions button {
+    min-height: 48px;
+    border-radius: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.install-primary {
+    border: 0;
+    background: linear-gradient(135deg, var(--primary), var(--teal));
+    color: #ffffff;
+    box-shadow: 0 14px 28px rgba(23, 105, 209, 0.2);
+}
+
+.install-secondary {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--primary-dark);
+}
+
+.install-actions button:hover,
+.install-actions button:focus {
+    transform: translateY(-1px);
+    outline: none;
+}
+
+@keyframes installCardIn {
+    from { opacity: 0; transform: translateY(18px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .assistant-input {
