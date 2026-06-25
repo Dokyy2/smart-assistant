@@ -6,7 +6,7 @@ window.services = [
         main: true,
         special: "",
         tutorial: "tutorials/birth/guide.pdf",
-        media: { image: "", gallery: [], audio: "" },
+        media: { image: "", gallery: [], audio: "assets/audio/01 تسجيل الميلاد.mp3" },
         keywords: [
             "ميلاد", "مولود", "الولادة", "الولاده", "طفل", "نونو", "بيبي", "خلفنا",
             "رزقنا", "قيد", "اضافة", "إضافة", "وضعت", "ولدت", "ولادة", "جبت عيل",
@@ -39,7 +39,7 @@ msg: `ألف مبروك 🎉<br><br>
         main: true,
         special: "",
         tutorial: "tutorials/vaccines/guide.pdf",
-        media: { image: "", gallery: [], audio: "" },
+        media: { image: "", gallery: [], audio: "assets/audio/02 التطعيمات.mp3" },
         keywords: [
             "تطعيم", "تطعمات", "تطاعيم", "حقنة", "حقنه", "نقط", "شلل الأطفال",
             "شلل الاطفال", "جرعة", "تطعيمات", "الغدة", "الغده", "تحليل الكعب",
@@ -76,7 +76,7 @@ msg: `ربنا يبارك فيه ويحفظه 🤍<br><br>
         main: true,
         special: "",
         tutorial: "tutorials/death/guide.pdf",
-        media: { image: "", gallery: [], audio: "" },
+        media: { image: "", gallery: [], audio: "assets/audio/03 تسجيل الوفاه.mp3" },
         keywords: [
             "وفاة", "وفاه", "وفات", "توفى", "توفي", "توفاه", "المتوفي",
             "المتوفى", "الوفيات", "البقاء لله", "الدوام لله",
@@ -113,7 +113,7 @@ msg: `ربنا يرحمه ويغفر له 🤍<br><br>
         special: "insurance",
         tutorial: "",
         showMore: false,
-        media: { image: "", gallery: [], audio: "" },
+        media: { image: "", gallery: [], audio: "assets/audio/06 التأمين الصحى.mp3" },
         keywords: [
             "تأمين", "التأمين", "التأمين الصحي", "علاج", "بطاقة تأمين",
             "كشف تأمين", "مستشفى تأمين", "عيادة تأمين", "نظام التأمين",
@@ -146,7 +146,7 @@ msg: `💙 خدمات التأمين الصحي<br><br>
         main: true,
         special: "",
         tutorial: "tutorials/family/guide.pdf",
-        media: { image: "", gallery: [], audio: "" },
+        media: { image: "", gallery: [], audio: "assets/audio/04 تنمية الاسرة.mp3" },
         keywords: [
             "تنظيم", "تنظيم الأسرة", "تنميه الاسره", "الوسيلة", "الوسيله", "وسيله",
             "وسيلة", "منع الحمل", "تحديد النسل", "اللولب", "البرشام", "الحقنة",
@@ -177,7 +177,7 @@ msg: `🌷 أهلاً بيكم<br><br>
 },
 {
 
-        name: "المستشفيات التابعة",
+        name: "المستشفيات التابعة لمكاتب الصحة",
         icon: "📍",
         desc: "الأماكن التابعة ومواعيد العمل",
         main: true,
@@ -199,7 +199,7 @@ msg: `🌷 أهلاً بيكم<br><br>
         special: "emergency",
         customView: "emergency",
         tutorial: "tutorials/emergency/guide.pdf",
-        media: { image: "", gallery: [], audio: "" },
+        media: { image: "", gallery: [], audio: "assets/audio/05 الاجازات والعطلات الرسمية.mp3" },
         keywords: [
             "طوارئ", "اجازة", "إجازة", "اجازه", "عطلة", "عطله", "رسمية", "المكتب مقفل",
             "المكتب قفل", "المكتب قافل", "يوم الجمعة", "يوم الجمعه", "يوم السبت",

@@ -32,10 +32,15 @@ const imageStage = document.getElementById("imageStage");
 const installPrompt = document.getElementById("installPrompt");
 const installNowBtn = document.getElementById("installNowBtn");
 const installLaterBtn = document.getElementById("installLaterBtn");
+const introAudioPrompt = document.getElementById("introAudioPrompt");
+const introPlayBtn = document.getElementById("introPlayBtn");
+const introSkipBtn = document.getElementById("introSkipBtn");
+const introDontShowAgain = document.getElementById("introDontShowAgain");
 
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
 let imageDrag = null;
+let imageSwipe = null;
 let currentGalleryIndex = 0;
 let modalPointers = new Map();
 let pinchStart = null;
@@ -44,14 +49,18 @@ let galleryAutoFrame = null;
 let galleryPausedUntil = 0;
 let tickerAutoFrame = null;
 let deferredInstallPrompt = null;
+let currentAudio = null;
+let assistantHistoryActive = false;
+let imageHistoryActive = false;
+let ignoreNextPopState = false;
 
 const INTRO_SPEECH_DELAY = 2000;
 const INSTALL_PROMPT_DELAY = 12000;
-const INSTALL_PROMPT_COOLDOWN = 12 * 60 * 60 * 1000;
-const INSTALL_PROMPT_STORAGE_KEY = "healthAssistantInstallPromptLaterAt";
-const INTRO_SPEECH_TEXT = "أهلاً بيك في المساعد الذكي. لو مش بتعرف تقرأ، أو معندكش وقت تقرأ دلوقتي، تقدر تسمع شرح أي خدمة من زر السماعة الموجود تحت رد المساعد. اختار الخدمة اللي محتاجها، واحنا هنساعدك خطوة بخطوة.";
+const INTRO_AUDIO_SRC = "assets/audio/00 المقدمة.mp3";
+const INTRO_AUDIO_PLAYED_KEY = "healthAssistantIntroAudioPlayed";
+const INTRO_AUDIO_SUPPRESS_UNTIL_KEY = "healthAssistantIntroAudioSuppressUntil";
 const STATS_START_DATE = new Date("2026-06-20T00:00:00");
-const STATS_STEP_MS = 2 * 60 * 60 * 1000;
+const STATS_STEP_MS = 60 * 60 * 1000;
 const STATS_STEP_VALUE = 3;
 const arabicNumberFormatter = new Intl.NumberFormat("ar-EG");
 
@@ -142,7 +151,7 @@ function pauseGalleryAutoScroll(delay = 3000) {
 function renderHospitalsIntro() {
     return `
         <span class="response-title">📍 المناطق الطبية التابعة لمديرية الشئون الصحية بالقاهرة</span>
-        اختار المنطقة الطبية المطلوبة، والمساعد هيعرض لك مكاتب الصحة والمستشفيات التابعة لها بشكل واضح.<br><br>
+        اختار المنطقة الطبية المطلوبة، والمساعد هيعرض لك مكاتب الصحة والمستشفيات التابعة لمكاتب الصحة بشكل واضح.<br><br>
         <button class="option-btn area-choice" type="button" data-medical-area="waily">
             منطقة الوايلي الطبية
         </button>
@@ -202,34 +211,45 @@ function renderHospitalList(items) {
 }
 
 function renderEmergencyGuide() {
-    const cards = Array.from({ length: 6 }, (_, index) => ({
-        title: index === 0 ? "مكتب صحة الدمرداش" : `مكتب طوارئ رقم ${index + 1}`,
-        area: index === 0 ? "منطقة الوايلي الطبية" : "منطقة طبية",
-        serves: index === 0 ? "يخدم منطقة الوايلي" : "يخدم المنطقة المحيطة",
-        days: "مفتوح أيام الإجازات والعطلات الرسمية",
-        services: "مواليد - وفيات - تطعيمات",
-        time: "من الساعة 8 صباحا حتى 6 مساءا",
-        map: "https://maps.app.goo.gl/96Hna7KCu4rshQVL7"
-    }));
+    const cards = [
+        {
+            title: "مكتب صحة النزهة - ميدان المحكمة",
+            area: "منطقة النزهة",
+            time: "المواعيد من 6 مساءا حتى 6 صباحا",
+            map: "https://maps.app.goo.gl/dBLANWrF7vWqJsvB7"
+        },
+        {
+            title: "مكتب صحة الخبيري - المعادي",
+            area: "منطقة المعادي",
+            time: "المواعيد من 6 مساءا حتى 6 صباحا",
+            map: "https://maps.app.goo.gl/THU14A1hNoa1q3nJ8"
+        },
+        {
+            title: "مكتب صحة التجمع الخامس - القاهرة الجديدة",
+            area: "القاهرة الجديدة",
+            time: "المواعيد من 6 مساءا حتى 6 صباحا",
+            map: "https://maps.app.goo.gl/JmGRnm5rnVYYD7787"
+        }
+    ];
 
     return `
         <span class="response-title">🚨 دليلك في الإجازات والطوارئ</span>
         في أوقات الإجازات والعطلات الرسمية، ممكن تحتاج خدمة صحية مهمة ومش عارف تروح فين.<br><br>
         علشان كده وفرنالك دليل بسيط وواضح يساعدك توصل لأقرب مكان يقدم لك الخدمة بدون تعب أو تأخير.<br><br>
-        اختار المكان المناسب من الكروت اللي تحت… واضغط علشان تروح مباشرة.
+        كل مكتب يخدم منطقته في ساعات العمل الرسمية طوال أيام الأسبوع، وبعد مواعيد العمل الرسمية يعمل كمكتب طوارئ حسب المواعيد الموضحة.<br><br>
+        اختار المكان المناسب من الكروت اللي تحت واضغط على زر الاتجاهات.
 
         <div class="emergency-card-grid">
             ${cards.map((card, index) => `
-                <a class="emergency-card" href="${card.map}" target="_blank" rel="noopener noreferrer" style="--delay:${index * 90}ms">
+                <article class="emergency-card" style="--delay:${index * 90}ms">
                     <span class="emergency-card-badge">طوارئ</span>
                     <strong>${card.title}</strong>
                     <small>${card.area}</small>
-                    <p>${card.serves}</p>
-                    <p>${card.days}</p>
-                    <p>${card.services}</p>
+                    <p>يخدم منطقته في ساعات العمل الرسمية جميع أيام الأسبوع.</p>
+                    <p>بعد مواعيد العمل الرسمية يعمل كمكتب طوارئ.</p>
                     <b>${card.time}</b>
-                    <span class="map-action">افتح الاتجاهات</span>
-                </a>
+                    <a class="map-action" href="${card.map}" target="_blank" rel="noopener noreferrer">افتح الاتجاهات</a>
+                </article>
             `).join("")}
         </div>
     `;
@@ -243,13 +263,18 @@ function openImageModal(source, title, alt, index = 0) {
     currentGalleryIndex = index;
     imageScale = 1;
     imageOffset = { x: 0, y: 0 };
+    imageSwipe = null;
     modalPointers.clear();
     pinchStart = null;
     modalImage.src = source;
     modalImage.alt = alt;
-    modalImageTitle.textContent = title;
+    if (modalImageTitle) modalImageTitle.textContent = title;
     updateModalImage();
     imageModal.classList.remove("hidden");
+    if (!imageHistoryActive) {
+        history.pushState({ imageModal: true }, "", location.href);
+        imageHistoryActive = true;
+    }
 }
 
 function openGalleryIndex(index) {
@@ -260,9 +285,17 @@ function openGalleryIndex(index) {
     openImageModal(item.src, item.title, item.alt, safeIndex);
 }
 
-function closeImageModal() {
+function closeImageModal(fromHistory = false) {
     imageModal.classList.add("hidden");
     imageDrag = null;
+    imageSwipe = null;
+    if (imageHistoryActive) {
+        imageHistoryActive = false;
+        if (!fromHistory) {
+            ignoreNextPopState = true;
+            history.back();
+        }
+    }
 }
 
 function changeZoom(change) {
@@ -348,14 +381,20 @@ function getExtraIntro(serviceName, originalText) {
 }
 
 function enterAssistantMode() {
+    const wasOpen = document.body.classList.contains("assistant-open");
     document.body.classList.add("assistant-open");
     menuPanel.classList.add("hidden");
     assistantPanel.classList.remove("hidden");
+    if (!wasOpen && !assistantHistoryActive) {
+        history.pushState({ assistant: true }, "", location.href);
+        assistantHistoryActive = true;
+    }
     assistantPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function backToServices() {
+function backToServices(fromHistory = false) {
     window.speechSynthesis?.cancel();
+    stopCurrentAudio();
     document.body.classList.remove("assistant-open");
     assistantPanel.classList.add("hidden");
     menuPanel.classList.remove("hidden");
@@ -365,6 +404,10 @@ function backToServices() {
     userInput.value = "";
     assistantUserInput.value = "";
     menuPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (assistantHistoryActive) {
+        assistantHistoryActive = false;
+        if (!fromHistory) history.back();
+    }
 }
 
 function selectService(serviceName, originalText = "", addUserChoice = true, resetChat = true) {
@@ -384,12 +427,14 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
         removeTyping();
 
         if (service.customView === "hospitals") {
-            addMessage(renderHospitalsIntro(), "bot", "service-response response-hospitals");
+            addMessage(renderHospitalsIntro(), "bot", "service-response response-hospitals", { hideSpeak: true });
             return;
         }
 
         if (service.customView === "emergency") {
-            addMessage(renderEmergencyGuide(), "bot", "service-response response-emergency");
+            addMessage(renderEmergencyGuide(), "bot", "service-response response-emergency", {
+                audio: service.media?.audio || ""
+            });
             return;
         }
 
@@ -402,7 +447,9 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
             response += `<a href="${service.link}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
         }
 
-        addMessage(response, "bot", `service-response ${service.special ? `response-${service.special}` : ""}`);
+        addMessage(response, "bot", `service-response ${service.special ? `response-${service.special}` : ""}`, {
+            audio: service.media?.audio || ""
+        });
     }, 1100);
 }
 
@@ -472,17 +519,18 @@ function handleSend() {
     }, 1000);
 }
 
-function addMessage(text, type, extraClass = "") {
+function addMessage(text, type, extraClass = "", options = {}) {
     const div = document.createElement("div");
     div.className = `msg ${type === "user" ? "user-msg" : "bot-msg"} ${extraClass}`.trim();
     div.innerHTML = text;
+    if (options.audio) div.dataset.audio = options.audio;
 
     if (type === "bot") {
         const actions = document.createElement("div");
         actions.className = "message-actions";
         actions.innerHTML = `
             <button type="button" class="message-action copy-action" aria-label="نسخ الرد"><span class="copy-glyph" aria-hidden="true"></span></button>
-            <button type="button" class="message-action speak-action" aria-label="سماع الرد">🔊</button>
+            ${options.hideSpeak ? "" : '<button type="button" class="message-action speak-action" aria-label="سماع الرد">🔊</button>'}
         `;
         div.appendChild(actions);
     }
@@ -532,6 +580,12 @@ async function copyMessage(message) {
 }
 
 function speakMessage(message) {
+    const audioSrc = message.dataset.audio;
+    if (audioSrc) {
+        playAudioFile(audioSrc, message);
+        return;
+    }
+
     if (!("speechSynthesis" in window)) {
         showTinyFeedback(message, "الصوت غير مدعوم");
         return;
@@ -556,6 +610,42 @@ function speakMessage(message) {
     showTinyFeedback(message, "جاري القراءة");
 }
 
+function playAudioFile(source, feedbackTarget = null) {
+    stopCurrentAudio();
+
+    currentAudio = new Audio(source);
+    currentAudio.preload = "auto";
+    currentAudio.onended = () => {
+        currentAudio = null;
+    };
+    currentAudio.onerror = () => {
+        if (feedbackTarget) showTinyFeedback(feedbackTarget, "تعذر تشغيل الصوت");
+        currentAudio = null;
+    };
+
+    const playPromise = currentAudio.play();
+    if (playPromise?.catch) {
+        playPromise
+            .then(() => {
+                if (feedbackTarget) showTinyFeedback(feedbackTarget, "جاري تشغيل الصوت");
+            })
+            .catch(() => {
+                if (feedbackTarget) showTinyFeedback(feedbackTarget, "اضغط مرة أخرى لتشغيل الصوت");
+                else showIntroAudioPrompt();
+            });
+    } else if (feedbackTarget) {
+        showTinyFeedback(feedbackTarget, "جاري تشغيل الصوت");
+    }
+}
+
+function stopCurrentAudio() {
+    if (!currentAudio) return;
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+    window.speechSynthesis?.cancel();
+}
+
 function getArabicVoice() {
     if (!("speechSynthesis" in window)) return null;
 
@@ -565,21 +655,45 @@ function getArabicVoice() {
 }
 
 function scheduleIntroSpeech() {
-    window.setTimeout(playIntroSpeech, INTRO_SPEECH_DELAY);
+    window.setTimeout(handleIntroAudio, INTRO_SPEECH_DELAY);
 }
 
-function playIntroSpeech() {
-    if (!("speechSynthesis" in window) || document.body.classList.contains("assistant-open")) return;
+function handleIntroAudio() {
+    if (document.body.classList.contains("assistant-open")) return;
 
-    const utterance = new SpeechSynthesisUtterance(INTRO_SPEECH_TEXT);
-    const arabicVoice = getArabicVoice();
-    if (arabicVoice) utterance.voice = arabicVoice;
-    utterance.lang = arabicVoice?.lang || "ar-EG";
-    utterance.rate = 0.92;
-    utterance.pitch = 1;
+    const playedBefore = localStorage.getItem(INTRO_AUDIO_PLAYED_KEY) === "1";
+    const suppressUntil = Number(localStorage.getItem(INTRO_AUDIO_SUPPRESS_UNTIL_KEY) || 0);
 
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    if (!playedBefore) {
+        playIntroAudio(true);
+        return;
+    }
+
+    if (suppressUntil && Date.now() < suppressUntil) return;
+
+    showIntroAudioPrompt();
+}
+
+function playIntroAudio(markAsPlayed = false) {
+    playAudioFile(INTRO_AUDIO_SRC);
+    if (markAsPlayed) localStorage.setItem(INTRO_AUDIO_PLAYED_KEY, "1");
+    hideIntroAudioPrompt();
+}
+
+function showIntroAudioPrompt() {
+    introAudioPrompt?.classList.remove("hidden");
+    introPlayBtn?.focus();
+}
+
+function hideIntroAudioPrompt() {
+    introAudioPrompt?.classList.add("hidden");
+    if (introDontShowAgain) introDontShowAgain.checked = false;
+}
+
+function rememberIntroPromptChoice() {
+    if (introDontShowAgain?.checked) {
+        localStorage.setItem(INTRO_AUDIO_SUPPRESS_UNTIL_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+    }
 }
 
 function cleanSpeechText(text) {
@@ -621,10 +735,11 @@ function updateAudienceStats() {
         const dayNumber = Math.max(0, Math.floor((todayStart - STATS_START_DATE) / (24 * 60 * 60 * 1000)));
         const currentStep = Math.floor((now - todayStart) / STATS_STEP_MS);
         const increment = currentStep * STATS_STEP_VALUE;
+        const totalSteps = Math.max(0, Math.floor((now - STATS_START_DATE) / STATS_STEP_MS));
 
-        const onlineNow = 3 + ((currentStep + dayNumber) % 4) * STATS_STEP_VALUE;
-        const todayUsers = 18 + increment;
-        const totalUsers = 1250 + (dayNumber * 36) + increment;
+        const onlineNow = 2 + ((currentStep + dayNumber) % 3);
+        const todayUsers = 6 + increment;
+        const totalUsers = 350 + (totalSteps * STATS_STEP_VALUE);
 
         if (![onlineNow, todayUsers, totalUsers].every(Number.isFinite)) {
             throw new Error("Stats unavailable");
@@ -717,14 +832,15 @@ function isAppInstalled() {
 }
 
 function shouldShowInstallPrompt() {
-    if (!deferredInstallPrompt || isAppInstalled()) return false;
-
-    const laterAt = Number(localStorage.getItem(INSTALL_PROMPT_STORAGE_KEY) || 0);
-    return !laterAt || Date.now() - laterAt >= INSTALL_PROMPT_COOLDOWN;
+    return Boolean(deferredInstallPrompt && !isAppInstalled());
 }
 
 function scheduleInstallPrompt() {
     window.setTimeout(() => {
+        if (introAudioPrompt && !introAudioPrompt.classList.contains("hidden")) {
+            scheduleInstallPrompt();
+            return;
+        }
         if (shouldShowInstallPrompt()) showInstallPrompt();
     }, INSTALL_PROMPT_DELAY);
 }
@@ -744,6 +860,20 @@ assistantSendBtn.addEventListener("click", handleSend);
 assistantFab.addEventListener("click", startTextAssistant);
 document.getElementById("backToServicesBtn").addEventListener("click", backToServices);
 document.getElementById("floatingBackBtn").addEventListener("click", backToServices);
+servicesGrid.addEventListener("click", event => {
+    const serviceButton = event.target.closest("[data-service]");
+    if (!serviceButton) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectService(serviceButton.dataset.service);
+});
+
+document.querySelectorAll(".modal-nav, .image-tools button").forEach(button => {
+    button.addEventListener("pointerdown", event => {
+        event.stopPropagation();
+    });
+});
 
 window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
@@ -754,7 +884,22 @@ window.addEventListener("beforeinstallprompt", event => {
 window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     hideInstallPrompt();
-    localStorage.removeItem(INSTALL_PROMPT_STORAGE_KEY);
+});
+
+window.addEventListener("popstate", () => {
+    if (ignoreNextPopState) {
+        ignoreNextPopState = false;
+        return;
+    }
+
+    if (!imageModal.classList.contains("hidden")) {
+        closeImageModal(true);
+        return;
+    }
+
+    if (document.body.classList.contains("assistant-open")) {
+        backToServices(true);
+    }
 });
 
 installNowBtn?.addEventListener("click", async () => {
@@ -771,8 +916,17 @@ installNowBtn?.addEventListener("click", async () => {
 });
 
 installLaterBtn?.addEventListener("click", () => {
-    localStorage.setItem(INSTALL_PROMPT_STORAGE_KEY, String(Date.now()));
     hideInstallPrompt();
+});
+
+introPlayBtn?.addEventListener("click", () => {
+    rememberIntroPromptChoice();
+    playIntroAudio(true);
+});
+
+introSkipBtn?.addEventListener("click", () => {
+    rememberIntroPromptChoice();
+    hideIntroAudioPrompt();
 });
 
 themeToggle.addEventListener("click", () => {
@@ -814,7 +968,7 @@ document.addEventListener("click", event => {
         showTyping();
         setTimeout(() => {
             removeTyping();
-            addMessage(renderWailyHospitals(), "bot", "service-response response-hospitals");
+            addMessage(renderWailyHospitals(), "bot", "service-response response-hospitals", { hideSpeak: true });
         }, 800);
         return;
     }
@@ -861,8 +1015,12 @@ imageStage.addEventListener("pointerdown", event => {
         const points = [...modalPointers.values()];
         pinchStart = { distance: getDistance(points[0], points[1]), scale: imageScale };
         imageDrag = null;
+        imageSwipe = null;
     } else if (imageScale > 1) {
         imageDrag = { x: event.clientX, y: event.clientY, offsetX: imageOffset.x, offsetY: imageOffset.y };
+        imageSwipe = null;
+    } else {
+        imageSwipe = { x: event.clientX, y: event.clientY };
     }
     imageStage.setPointerCapture(event.pointerId);
 });
@@ -889,15 +1047,24 @@ imageStage.addEventListener("pointermove", event => {
 });
 
 imageStage.addEventListener("pointerup", event => {
+    if (imageSwipe && imageScale <= 1 && modalPointers.size === 1) {
+        const deltaX = event.clientX - imageSwipe.x;
+        const deltaY = event.clientY - imageSwipe.y;
+        if (Math.abs(deltaX) > 54 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+            openGalleryIndex(deltaX > 0 ? currentGalleryIndex + 1 : currentGalleryIndex - 1);
+        }
+    }
     modalPointers.delete(event.pointerId);
     pinchStart = null;
     imageDrag = null;
+    imageSwipe = null;
 });
 
 imageStage.addEventListener("pointercancel", event => {
     modalPointers.delete(event.pointerId);
     pinchStart = null;
     imageDrag = null;
+    imageSwipe = null;
 });
 
 function getDistance(a, b) {

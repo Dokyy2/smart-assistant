@@ -1624,11 +1624,15 @@ button {
 }
 
 .image-modal-bar {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 12px;
-    padding: 14px 18px;
+    padding: 0;
     color: #ffffff;
 }
 
@@ -1650,7 +1654,7 @@ button {
     height: 36px;
     border: 1px solid rgba(255, 255, 255, 0.26);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.14);
     color: #ffffff;
     font-size: 1.1rem;
     cursor: pointer;
@@ -1663,6 +1667,7 @@ button {
 }
 
 .image-stage {
+    position: relative;
     display: grid;
     flex: 1;
     place-items: center;
@@ -1681,11 +1686,44 @@ button {
     user-select: none;
 }
 
+.modal-nav {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 2rem;
+    cursor: pointer;
+    transform: translateY(-50%);
+    backdrop-filter: blur(10px);
+}
+
+.modal-nav-prev {
+    right: 16px;
+}
+
+.modal-nav-next {
+    left: 16px;
+}
+
+.modal-nav:hover,
+.modal-nav:focus {
+    background: rgba(126, 232, 250, 0.22);
+    outline: none;
+}
+
 .image-stage img:active {
     cursor: grabbing;
 }
 
-.install-prompt {
+.install-prompt,
+.intro-audio-prompt {
     position: fixed;
     inset: 0;
     z-index: 80;
@@ -1696,7 +1734,8 @@ button {
     backdrop-filter: blur(8px);
 }
 
-.install-card {
+.install-card,
+.intro-audio-card {
     width: min(100%, 390px);
     padding: 20px;
     border: 1px solid rgba(23, 105, 209, 0.22);
@@ -1710,7 +1749,8 @@ button {
     animation: installCardIn 0.34s ease both;
 }
 
-.install-icon {
+.install-icon,
+.intro-audio-icon {
     display: grid;
     place-items: center;
     width: 58px;
@@ -1722,7 +1762,8 @@ button {
     box-shadow: 0 12px 24px rgba(23, 105, 209, 0.1);
 }
 
-.install-card h2 {
+.install-card h2,
+.intro-audio-card h2 {
     margin: 0;
     color: var(--primary-dark);
     font-size: 1.22rem;
@@ -1730,24 +1771,44 @@ button {
     font-weight: 900;
 }
 
-.install-card p {
+.install-card p,
+.intro-audio-card p {
     margin: 9px 0 16px;
     color: var(--muted);
     line-height: 1.8;
 }
 
-.install-actions {
+.install-actions,
+.intro-audio-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
 }
 
-.install-actions button {
+.install-actions button,
+.intro-audio-actions button {
     min-height: 48px;
     border-radius: 15px;
     font-weight: 900;
     cursor: pointer;
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.intro-audio-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    text-align: right;
+}
+
+.intro-audio-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
 }
 
 .install-primary {
@@ -1764,7 +1825,9 @@ button {
 }
 
 .install-actions button:hover,
-.install-actions button:focus {
+.install-actions button:focus,
+.intro-audio-actions button:hover,
+.intro-audio-actions button:focus {
     transform: translateY(-1px);
     outline: none;
 }
@@ -1974,6 +2037,7 @@ body.assistant-open .assistant-fab,
     color: #ffffff;
     text-align: center;
     font-weight: 900;
+    text-decoration: none;
 }
 
 @keyframes emergencyReveal {

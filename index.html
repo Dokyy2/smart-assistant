@@ -8,17 +8,23 @@
     <meta property="og:title" content="المساعد الذكي - مكاتب الصحة">
     <meta property="og:description" content="من حقك تعرف ومن واجبنا نساعدك.">
     <meta property="og:image" content="assets/images/assistant-logo.png">
+    <meta property="og:image:secure_url" content="assets/images/assistant-logo.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
     <meta property="og:image:alt" content="شعار المساعد الذكي">
+    <link rel="image_src" href="assets/images/assistant-logo.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="المساعد الذكي - مكاتب الصحة">
     <meta name="twitter:description" content="من حقك تعرف ومن واجبنا نساعدك.">
     <meta name="twitter:image" content="assets/images/assistant-logo.png">
+    <meta name="twitter:image:alt" content="شعار المساعد الذكي">
     <meta name="theme-color" content="#1769d1">
     <title>المساعد الذكي - مكاتب الصحة</title>
     <link rel="icon" type="image/png" href="assets/images/assistant-logo.png">
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles/main.css?v=20260625-5">
+    <link rel="stylesheet" href="styles/main.css?v=20260626-2">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
@@ -123,7 +129,7 @@
 
         <footer class="footer">
             <span class="footer-credit">Design by : Eng Bassem Ashraf</span>
-            <small>Last update : 25-6-2026</small>
+            <small>Last update : 26-6-2026</small>
         </footer>
     </div>
 
@@ -133,18 +139,30 @@
 
     <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="عرض الصورة">
         <div class="image-modal-bar">
-            <strong id="modalImageTitle">صورة توضيحية</strong>
             <div class="image-tools">
-                <button type="button" data-image-tool="zoom-in" aria-label="تكبير الصورة">＋</button>
-                <button type="button" data-image-tool="zoom-out" aria-label="تصغير الصورة">－</button>
-                <button type="button" data-image-tool="reset" aria-label="إعادة حجم الصورة">↺</button>
-                <button type="button" data-image-tool="previous" aria-label="الصورة السابقة">›</button>
-                <button type="button" data-image-tool="next" aria-label="الصورة التالية">‹</button>
                 <button type="button" data-image-tool="close" aria-label="إغلاق الصورة">×</button>
             </div>
         </div>
         <div id="imageStage" class="image-stage">
+            <button class="modal-nav modal-nav-prev" type="button" data-image-tool="previous" aria-label="الصورة السابقة">‹</button>
             <img id="modalImage" alt="">
+            <button class="modal-nav modal-nav-next" type="button" data-image-tool="next" aria-label="الصورة التالية">›</button>
+        </div>
+    </div>
+
+    <div id="introAudioPrompt" class="intro-audio-prompt hidden" role="dialog" aria-modal="true" aria-labelledby="introAudioTitle">
+        <div class="intro-audio-card">
+            <div class="intro-audio-icon" aria-hidden="true">🔊</div>
+            <h2 id="introAudioTitle">هل تريد سماع رسالة الترحيب؟</h2>
+            <p>رسالة قصيرة تشرح لك طريقة استخدام المساعد وسماع الخدمات.</p>
+            <label class="intro-audio-check">
+                <input id="introDontShowAgain" type="checkbox">
+                عدم إظهار الرسالة مرة أخرى لمدة 24 ساعة
+            </label>
+            <div class="intro-audio-actions">
+                <button id="introPlayBtn" class="install-primary" type="button">اسمع الرسالة</button>
+                <button id="introSkipBtn" class="install-secondary" type="button">لا، شكرًا</button>
+            </div>
         </div>
     </div>
 
@@ -160,9 +178,9 @@
         </div>
     </div>
 
-    <script src="data/services.js?v=20260625-1"></script>
+    <script src="data/services.js?v=20260626-3"></script>
     <script src="data/announcements.js?v=20260625-1"></script>
     <script src="data/gallery.js?v=20260625-1"></script>
-    <script src="scripts/app.js?v=20260625-5"></script>
+    <script src="scripts/app.js?v=20260626-2"></script>
 </body>
 </html>
