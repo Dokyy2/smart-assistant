@@ -3,6 +3,7 @@ const announcements = window.announcements || [];
 const fixedAnnouncements = window.fixedAnnouncements || [];
 const galleryItems = window.galleryItems || [];
 const cairoHealthOffices = window.cairoHealthOffices || [];
+const vaccinationSchedule = window.vaccinationSchedule || [];
 
 const serviceByName = new Map(services.map(service => [service.name, service]));
 const cairoHealthOfficeById = new Map();
@@ -43,6 +44,11 @@ const officeModalName = document.getElementById("officeModalName");
 const officeModalArea = document.getElementById("officeModalArea");
 const officeModalAddress = document.getElementById("officeModalAddress");
 const officeModalMap = document.getElementById("officeModalMap");
+const vaccineModal = document.getElementById("vaccineModal");
+const vaccineModalIcon = document.getElementById("vaccineModalIcon");
+const vaccineModalLabel = document.getElementById("vaccineModalLabel");
+const vaccineModalAge = document.getElementById("vaccineModalAge");
+const vaccineModalList = document.getElementById("vaccineModalList");
 
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
@@ -242,6 +248,65 @@ function openOfficeModal(office) {
 function closeOfficeModal() {
     officeModal?.classList.add("hidden");
     document.body.classList.remove("office-modal-open");
+}
+
+function renderVaccinationGuide() {
+    const cards = vaccinationSchedule.map((group, index) => `
+        <button class="vaccine-age-card vaccine-${group.accent}" type="button" data-vaccine-age="${index}" style="--vaccine-delay:${index * 70}ms">
+            <span class="vaccine-age-icon" aria-hidden="true">${group.icon}</span>
+            <span class="vaccine-age-content">
+                <span class="vaccine-age-label">${group.label}</span>
+                <strong>${group.age}</strong>
+                <small>${group.vaccines.length} تطعيمات - اضغط للتفاصيل</small>
+            </span>
+            <span class="vaccine-age-arrow" aria-hidden="true">‹</span>
+        </button>
+    `).join("");
+
+    return `
+        <span class="response-title">💉 جدول تطعيمات الطفل</span>
+        <p class="vaccines-guide-intro">اختار عمر طفلك، وستظهر لك التطعيمات المطلوبة وطريقة إعطاء كل واحد منها بشكل بسيط.</p>
+        <div class="vaccines-timeline" aria-hidden="true"><span></span></div>
+        <div class="vaccines-age-grid">${cards}</div>
+        <p class="vaccines-guide-note">اضغط على الكارت ثم افتح اسم التطعيم الذي تريد معرفة تفاصيله.</p>
+    `;
+}
+
+function showVaccinationGuide() {
+    enterAssistantMode();
+    chatArea.innerHTML = "";
+    assistantInputGroup.classList.add("hidden");
+    addMessage(renderVaccinationGuide(), "bot", "service-response response-vaccines", { hideSpeak: true });
+}
+
+function openVaccineModal(group) {
+    if (!group || !vaccineModal) return;
+
+    vaccineModalIcon.textContent = group.icon;
+    vaccineModalLabel.textContent = group.label;
+    vaccineModalAge.textContent = group.age;
+    vaccineModalList.innerHTML = group.vaccines.map((vaccine, index) => `
+        <details class="vaccine-detail" ${index === 0 ? "open" : ""}>
+            <summary>
+                <span class="vaccine-detail-mark">${index + 1}</span>
+                <span><strong>${vaccine.short}</strong><small>${vaccine.name}</small></span>
+                <span class="vaccine-detail-toggle" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="vaccine-detail-body">
+                <div><span>يحمي من</span><p>${vaccine.protects}</p></div>
+                <div><span>الكمية</span><p>${vaccine.dose}</p></div>
+                <div><span>طريقة الإعطاء</span><p>${vaccine.method}</p></div>
+            </div>
+        </details>
+    `).join("");
+    vaccineModal.classList.remove("hidden");
+    document.body.classList.add("vaccine-modal-open");
+    vaccineModal.querySelector(".vaccine-modal-back")?.focus();
+}
+
+function closeVaccineModal() {
+    vaccineModal?.classList.add("hidden");
+    document.body.classList.remove("vaccine-modal-open");
 }
 
 function renderWailyHospitals() {
@@ -532,7 +597,9 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
         let response = `<span class="response-title">${service.icon} ${service.name}</span>`;
         response += `${getExtraIntro(service.name, originalText)}${service.msg}`;
 
-        if (service.showMore !== false && service.tutorial) {
+        if (service.interactiveGuide === "vaccines") {
+            response += '<button class="btn-link interactive-guide-btn" type="button" data-action="vaccines-guide" aria-label="عرض المزيد: جدول تطعيمات الطفل">عرض المزيد</button>';
+        } else if (service.showMore !== false && service.tutorial) {
             response += `<a href="${service.tutorial}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
         } else if (service.link) {
             response += `<a href="${service.link}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
@@ -1115,6 +1182,17 @@ assistantUserInput.addEventListener("keydown", event => {
 });
 
 document.addEventListener("click", event => {
+    const vaccineAgeCard = event.target.closest("[data-vaccine-age]");
+    if (vaccineAgeCard) {
+        openVaccineModal(vaccinationSchedule[Number(vaccineAgeCard.dataset.vaccineAge)]);
+        return;
+    }
+
+    if (event.target.closest("[data-vaccine-modal-close]")) {
+        closeVaccineModal();
+        return;
+    }
+
     const officeButton = event.target.closest("[data-office-id]");
     if (officeButton) {
         openOfficeModal(cairoHealthOfficeById.get(officeButton.dataset.officeId));
@@ -1153,6 +1231,11 @@ document.addEventListener("click", event => {
             removeTyping();
             addMessage(renderWailyHospitals(), "bot", "service-response response-hospitals", { hideSpeak: true });
         }, 800);
+        return;
+    }
+
+    if (event.target.closest("[data-action='vaccines-guide']")) {
+        showVaccinationGuide();
         return;
     }
 
@@ -1216,8 +1299,17 @@ officeModal?.addEventListener("click", event => {
     if (event.target === officeModal) closeOfficeModal();
 });
 
+vaccineModal?.addEventListener("click", event => {
+    if (event.target === vaccineModal) closeVaccineModal();
+});
+
 document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && officeModal && !officeModal.classList.contains("hidden")) {
+    if (event.key !== "Escape") return;
+    if (vaccineModal && !vaccineModal.classList.contains("hidden")) {
+        closeVaccineModal();
+        return;
+    }
+    if (officeModal && !officeModal.classList.contains("hidden")) {
         closeOfficeModal();
     }
 });

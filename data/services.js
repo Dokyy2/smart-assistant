@@ -38,6 +38,7 @@ msg: `ألف مبروك 🎉<br><br>
         desc: "تطعيمات الأطفال وتحليل كعب الرجل",
         main: true,
         special: "",
+        interactiveGuide: "vaccines",
         tutorial: "tutorials/vaccines/guide.pdf",
         media: { image: "", gallery: [], audio: "assets/audio/02 التطعيمات.mp3" },
         keywords: [
