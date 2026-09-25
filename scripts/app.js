@@ -2,8 +2,10 @@ const services = window.services || [];
 const announcements = window.announcements || [];
 const fixedAnnouncements = window.fixedAnnouncements || [];
 const galleryItems = window.galleryItems || [];
+const cairoHealthOffices = window.cairoHealthOffices || [];
 
 const serviceByName = new Map(services.map(service => [service.name, service]));
+const cairoHealthOfficeById = new Map();
 const splash = document.getElementById("splash");
 const readerApp = document.getElementById("readerApp");
 const menuPanel = document.getElementById("menuPanel");
@@ -36,6 +38,11 @@ const introAudioPrompt = document.getElementById("introAudioPrompt");
 const introPlayBtn = document.getElementById("introPlayBtn");
 const introSkipBtn = document.getElementById("introSkipBtn");
 const introDontShowAgain = document.getElementById("introDontShowAgain");
+const officeModal = document.getElementById("officeModal");
+const officeModalName = document.getElementById("officeModalName");
+const officeModalArea = document.getElementById("officeModalArea");
+const officeModalAddress = document.getElementById("officeModalAddress");
+const officeModalMap = document.getElementById("officeModalMap");
 
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
@@ -156,6 +163,85 @@ function renderHospitalsIntro() {
             منطقة الوايلي الطبية
         </button>
     `;
+}
+
+function renderCairoHealthOffices() {
+    cairoHealthOfficeById.clear();
+    let officeId = 0;
+    const areas = cairoHealthOffices.map(area => {
+        const officeButtons = area.offices.map(([name, address]) => {
+            const id = String(officeId++);
+            cairoHealthOfficeById.set(id, { name, address, area: area.area });
+            return `<button class="office-name-button" type="button" data-office-id="${id}">${name}</button>`;
+        }).join("");
+
+        return `
+            <details class="office-area" data-office-area>
+                <summary>${area.area}<span>${area.offices.length} مكاتب</span></summary>
+                <div class="office-name-list">${officeButtons}</div>
+            </details>
+        `;
+    }).join("");
+
+    const officeCount = cairoHealthOffices.reduce((total, area) => total + area.offices.length, 0);
+    return `
+        <span class="response-title">🏢 جميع مكاتب الصحة بالقاهرة</span>
+        <p class="office-directory-intro">اكتب اسم المكتب أو المنطقة، أو افتح المنطقة ثم اضغط على اسم المكتب لعرض عنوانه وموقعه.</p>
+        <label class="office-search-label" for="officeSearch">ابحث عن مكتب أو منطقة</label>
+        <input id="officeSearch" class="office-search-input" type="search" placeholder="مثال: العباسية أو مدينة نصر" autocomplete="off">
+        <p id="officeSearchStatus" class="office-search-status">${officeCount} مكتبًا في ${cairoHealthOffices.length} منطقة</p>
+        <div id="officeDirectory" class="office-directory">${areas}</div>
+        <p class="office-source-note">العناوين مرجعية؛ يُفضّل التأكد من المكتب قبل التوجه إليه.</p>
+    `;
+}
+
+function filterCairoHealthOffices(query) {
+    const normalizedQuery = normalize(query);
+    let visibleCount = 0;
+
+    document.querySelectorAll("[data-office-area]").forEach(areaElement => {
+        let areaHasMatch = false;
+        areaElement.querySelectorAll("[data-office-id]").forEach(button => {
+            const office = cairoHealthOfficeById.get(button.dataset.officeId);
+            const searchText = normalize(`${office?.name || ""} ${office?.address || ""} ${office?.area || ""}`);
+            const isMatch = !normalizedQuery || searchText.includes(normalizedQuery);
+            button.classList.toggle("hidden", !isMatch);
+            if (isMatch) {
+                areaHasMatch = true;
+                visibleCount++;
+            }
+        });
+        areaElement.classList.toggle("hidden", !areaHasMatch);
+        areaElement.open = Boolean(normalizedQuery && areaHasMatch);
+    });
+
+    const status = document.getElementById("officeSearchStatus");
+    if (status) {
+        status.textContent = normalizedQuery
+            ? `${visibleCount} نتيجة مطابقة`
+            : `${visibleCount} مكتبًا في ${cairoHealthOffices.length} منطقة`;
+    }
+}
+
+function getOfficeMapUrl(office) {
+    const query = `${office.name}، ${office.address}، ${office.area}، القاهرة`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function openOfficeModal(office) {
+    if (!office || !officeModal) return;
+    officeModalName.textContent = office.name;
+    officeModalArea.textContent = office.area;
+    officeModalAddress.textContent = office.address;
+    officeModalMap.href = getOfficeMapUrl(office);
+    officeModal.classList.remove("hidden");
+    document.body.classList.add("office-modal-open");
+    officeModal.querySelector(".office-modal-close")?.focus();
+}
+
+function closeOfficeModal() {
+    officeModal?.classList.add("hidden");
+    document.body.classList.remove("office-modal-open");
 }
 
 function renderWailyHospitals() {
@@ -428,6 +514,11 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
 
         if (service.customView === "hospitals") {
             addMessage(renderHospitalsIntro(), "bot", "service-response response-hospitals", { hideSpeak: true });
+            return;
+        }
+
+        if (service.customView === "offices") {
+            addMessage(renderCairoHealthOffices(), "bot", "service-response response-offices", { hideSpeak: true });
             return;
         }
 
@@ -854,6 +945,87 @@ function hideInstallPrompt() {
     installPrompt?.classList.add("hidden");
 }
 
+// AI API integration. This intentionally keeps API calls outside the UI code and
+// renders model output as plain text, never as HTML.
+let aiConversation = [];
+
+function startTextAssistant() {
+    enterAssistantMode();
+    chatArea.innerHTML = "";
+    aiConversation = [];
+    assistantInputGroup.classList.remove("hidden");
+
+    showTyping();
+    setTimeout(() => {
+        removeTyping();
+        addMessage(getAssistantWelcome(), "bot", "notice-msg");
+        assistantUserInput.focus();
+    }, 300);
+}
+
+function quickSend(text) {
+    addMessage(text, "user");
+    respondToUser(text);
+}
+
+function handleSend() {
+    const activeInput = assistantInputGroup.classList.contains("hidden") ? userInput : assistantUserInput;
+    const text = activeInput.value.trim();
+    if (!text) return;
+
+    addMessage(text, "user");
+    activeInput.value = "";
+    respondToUser(text);
+}
+
+async function respondToUser(text) {
+    showTyping();
+
+    try {
+        const reply = await window.healthAssistantApi?.askAssistant(text, aiConversation);
+        removeTyping();
+        addPlainAssistantMessage(reply);
+        aiConversation.push({ role: "user", content: text }, { role: "assistant", content: reply });
+        aiConversation = aiConversation.slice(-10);
+    } catch (error) {
+        console.warn("AI assistant unavailable; using local service matching.", error);
+        removeTyping();
+        respondLocally(text);
+    }
+}
+
+function respondLocally(text) {
+    const matches = detectServices(text);
+    if (matches.length > 1) {
+        let html = "Found more than one relevant service. Choose the service you need:<br>";
+        matches.forEach(match => {
+            const service = serviceByName.get(match.name);
+            html += `<button class="option-btn" type="button" data-service="${match.name}">${service.icon} ${match.name}</button>`;
+        });
+        addMessage(html, "bot");
+    } else if (matches.length === 1) {
+        selectService(matches[0].name, text, false, false);
+    } else {
+        addMessage("Please provide more details, or choose from the main services.", "bot", "notice-msg");
+    }
+}
+
+function addPlainAssistantMessage(text) {
+    const div = document.createElement("div");
+    div.className = "msg bot-msg ai-response";
+    div.textContent = text;
+
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+    actions.innerHTML = `
+        <button type="button" class="message-action copy-action" aria-label="Copy response"><span class="copy-glyph" aria-hidden="true"></span></button>
+        <button type="button" class="message-action speak-action" aria-label="Read response">&#128266;</button>
+    `;
+    div.appendChild(actions);
+    chatArea.appendChild(div);
+    div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
 document.getElementById("showSearchBtn").addEventListener("click", startTextAssistant);
 document.getElementById("sendBtn").addEventListener("click", handleSend);
 assistantSendBtn.addEventListener("click", handleSend);
@@ -943,6 +1115,17 @@ assistantUserInput.addEventListener("keydown", event => {
 });
 
 document.addEventListener("click", event => {
+    const officeButton = event.target.closest("[data-office-id]");
+    if (officeButton) {
+        openOfficeModal(cairoHealthOfficeById.get(officeButton.dataset.officeId));
+        return;
+    }
+
+    if (event.target.closest("[data-office-modal-close]")) {
+        closeOfficeModal();
+        return;
+    }
+
     const serviceButton = event.target.closest("[data-service]");
     if (serviceButton) {
         const fromChat = Boolean(event.target.closest("#chatArea"));
@@ -1000,6 +1183,10 @@ document.addEventListener("click", event => {
     }
 });
 
+document.addEventListener("input", event => {
+    if (event.target.id === "officeSearch") filterCairoHealthOffices(event.target.value);
+});
+
 imageModal.addEventListener("click", event => {
     if (event.target === imageModal) closeImageModal();
 });
@@ -1023,6 +1210,16 @@ imageStage.addEventListener("pointerdown", event => {
         imageSwipe = { x: event.clientX, y: event.clientY };
     }
     imageStage.setPointerCapture(event.pointerId);
+});
+
+officeModal?.addEventListener("click", event => {
+    if (event.target === officeModal) closeOfficeModal();
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && officeModal && !officeModal.classList.contains("hidden")) {
+        closeOfficeModal();
+    }
 });
 
 imageStage.addEventListener("pointermove", event => {
