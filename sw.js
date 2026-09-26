@@ -1,10 +1,10 @@
-const CACHE_NAME = "health-assistant-20260925-6";
+const CACHE_NAME = "health-assistant-20260927-1";
 
 const CORE_ASSETS = [
   "./",
   "./index.html",
-  "./styles/main.css?v=20260925-4",
-  "./scripts/app.js?v=20260925-4",
+  "./styles/main.css?v=20260927-1",
+  "./scripts/app.js?v=20260927-1",
   "./scripts/ai-api.js?v=20260731-1",
   "./data/ai-config.js?v=20260731-1",
   "./data/cairo-health-offices.js?v=20260925-1",

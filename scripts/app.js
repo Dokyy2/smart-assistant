@@ -28,6 +28,7 @@ const onlineNowCount = document.getElementById("onlineNowCount");
 const todayUsersCount = document.getElementById("todayUsersCount");
 const totalUsersCount = document.getElementById("totalUsersCount");
 const themeToggle = document.getElementById("themeToggle");
+const seniorModeToggle = document.getElementById("seniorModeToggle");
 const imageModal = document.getElementById("imageModal");
 const modalImage = document.getElementById("modalImage");
 const modalImageTitle = document.getElementById("modalImageTitle");
@@ -35,20 +36,23 @@ const imageStage = document.getElementById("imageStage");
 const installPrompt = document.getElementById("installPrompt");
 const installNowBtn = document.getElementById("installNowBtn");
 const installLaterBtn = document.getElementById("installLaterBtn");
-const introAudioPrompt = document.getElementById("introAudioPrompt");
-const introPlayBtn = document.getElementById("introPlayBtn");
-const introSkipBtn = document.getElementById("introSkipBtn");
-const introDontShowAgain = document.getElementById("introDontShowAgain");
+const introAudioFab = document.getElementById("introAudioFab");
+const introAudioFabIcon = introAudioFab?.querySelector(".intro-audio-fab-icon");
+const introAudioFabLabel = introAudioFab?.querySelector(".intro-audio-fab-label");
 const officeModal = document.getElementById("officeModal");
 const officeModalName = document.getElementById("officeModalName");
 const officeModalArea = document.getElementById("officeModalArea");
 const officeModalAddress = document.getElementById("officeModalAddress");
 const officeModalMap = document.getElementById("officeModalMap");
+const officeFavoriteBtn = document.getElementById("officeFavoriteBtn");
 const vaccineModal = document.getElementById("vaccineModal");
 const vaccineModalIcon = document.getElementById("vaccineModalIcon");
 const vaccineModalLabel = document.getElementById("vaccineModalLabel");
 const vaccineModalAge = document.getElementById("vaccineModalAge");
 const vaccineModalList = document.getElementById("vaccineModalList");
+const assistantToolModal = document.getElementById("assistantToolModal");
+const assistantToolContent = document.getElementById("assistantToolContent");
+const personalAssistantStatus = document.getElementById("personalAssistantStatus");
 
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
@@ -66,16 +70,29 @@ let currentAudio = null;
 let assistantHistoryActive = false;
 let imageHistoryActive = false;
 let ignoreNextPopState = false;
+let introAudioPlaying = false;
+let selectedOffice = null;
 
-const INTRO_SPEECH_DELAY = 2000;
 const INSTALL_PROMPT_DELAY = 12000;
 const INTRO_AUDIO_SRC = "assets/audio/00 المقدمة.mp3";
-const INTRO_AUDIO_PLAYED_KEY = "healthAssistantIntroAudioPlayed";
-const INTRO_AUDIO_SUPPRESS_UNTIL_KEY = "healthAssistantIntroAudioSuppressUntil";
 const STATS_START_DATE = new Date("2026-06-20T00:00:00");
 const STATS_STEP_MS = 60 * 60 * 1000;
 const STATS_STEP_VALUE = 3;
 const arabicNumberFormatter = new Intl.NumberFormat("ar-EG");
+const STORAGE_KEYS = {
+    favoriteOffice: "healthAssistantFavoriteOffice",
+    vaccineBirthDate: "healthAssistantVaccineBirthDate",
+    feedback: "healthAssistantFeedback",
+    missingRequests: "healthAssistantMissingRequests",
+    seniorMode: "healthAssistantSeniorMode",
+    customAnnouncements: "healthAssistantCustomAnnouncements"
+};
+const documentChecklists = {
+    "تسجيل المواليد": ["أصل إخطار المولود", "بطاقة الرقم القومي للأب والأم", "قسيمة الزواج أو قسيمة كمبيوتر حديثة", "صورتان من كل بطاقة ومستند"],
+    "تسجيل الوفيات": ["إخطار الوفاة من المستشفى أو الجهة الطبية", "بطاقة المتوفى أو شهادة ميلاد مميكنة", "بطاقة الرقم القومي للمُبلّغ", "ما يثبت صلة القرابة عند استلام الشهادة"],
+    "التطعيمات": ["شهادة التطعيم أو شهادة الميلاد إن وُجدت", "معرفة عمر الطفل أو تاريخ ميلاده", "إحضار أي تقارير طبية مهمة عند الحاجة"],
+    "تنمية الأسرة": ["بطاقة الرقم القومي", "استشارة الطبيبة لاختيار الوسيلة المناسبة", "أي تقارير أو وصفات طبية مرتبطة بالحالة إن وُجدت"]
+};
 
 function renderMainMenu() {
     servicesGrid.innerHTML = "";
@@ -106,8 +123,9 @@ function shuffleItems(items) {
 }
 
 function renderTicker() {
+    const customAnnouncements = readStoredJson(STORAGE_KEYS.customAnnouncements, []).map(item => item.text).filter(Boolean);
     const shuffled = shuffleItems(announcements);
-    const selected = [...fixedAnnouncements, ...shuffled.slice(0, Math.min(7, shuffled.length))];
+    const selected = [...customAnnouncements, ...fixedAnnouncements, ...shuffled.slice(0, Math.min(7, shuffled.length))];
     const items = selected.map((text, index) => `<span class="ticker-item ${index < fixedAnnouncements.length ? "is-fixed" : ""}">${text}</span>`).join("");
     ticker.innerHTML = `<div class="ticker-track">${items}${items}${items}${items}${items}${items}</div>`;
     startTickerAutoScroll();
@@ -236,10 +254,12 @@ function getOfficeMapUrl(office) {
 
 function openOfficeModal(office) {
     if (!office || !officeModal) return;
+    selectedOffice = office;
     officeModalName.textContent = office.name;
     officeModalArea.textContent = office.area;
     officeModalAddress.textContent = office.address;
     officeModalMap.href = getOfficeMapUrl(office);
+    updateOfficeFavoriteButton();
     officeModal.classList.remove("hidden");
     document.body.classList.add("office-modal-open");
     officeModal.querySelector(".office-modal-close")?.focus();
@@ -249,6 +269,73 @@ function closeOfficeModal() {
     officeModal?.classList.add("hidden");
     document.body.classList.remove("office-modal-open");
 }
+
+function readStoredJson(key, fallback) { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
+function getFavoriteOffice() { return readStoredJson(STORAGE_KEYS.favoriteOffice, null); }
+function sameOffice(first, second) { return Boolean(first && second && first.name === second.name && first.address === second.address); }
+function updateOfficeFavoriteButton() {
+    if (!officeFavoriteBtn) return;
+    const isFavorite = sameOffice(getFavoriteOffice(), selectedOffice);
+    officeFavoriteBtn.classList.toggle("is-favorite", isFavorite);
+    officeFavoriteBtn.innerHTML = isFavorite ? '<span aria-hidden="true">★</span> مكتبك المعتاد' : '<span aria-hidden="true">☆</span> حفظ كمكتبي المعتاد';
+}
+function toggleOfficeFavorite() {
+    if (!selectedOffice) return;
+    if (sameOffice(getFavoriteOffice(), selectedOffice)) localStorage.removeItem(STORAGE_KEYS.favoriteOffice);
+    else localStorage.setItem(STORAGE_KEYS.favoriteOffice, JSON.stringify(selectedOffice));
+    updateOfficeFavoriteButton(); renderPersonalAssistantStatus();
+}
+
+function getChildAgeInMonths(value) {
+    const birth = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(birth.getTime()) || birth > new Date()) return null;
+    const now = new Date(); let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
+    if (now.getDate() < birth.getDate()) months--; return Math.max(0, months);
+}
+function formatArabicDate(value) { return new Intl.DateTimeFormat("ar-EG", { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(value); }
+function getNextVaccineGroup(value) {
+    if (getChildAgeInMonths(value) === null) return null;
+    const birth = new Date(`${value}T00:00:00`), today = new Date(); today.setHours(0,0,0,0);
+    const milestones = [0,2,4,6,9,12,18];
+    const index = milestones.findIndex(month => { const due = new Date(birth); due.setMonth(due.getMonth() + month); return due >= today; });
+    if (index === -1) return { group: vaccinationSchedule[vaccinationSchedule.length - 1], complete: true, dueDate: null };
+    const dueDate = new Date(birth); dueDate.setMonth(dueDate.getMonth() + milestones[index]);
+    return { group: vaccinationSchedule[index], complete: false, dueDate };
+}
+function renderPersonalAssistantStatus() {
+    if (!personalAssistantStatus) return;
+    const favorite = getFavoriteOffice(), birthDate = localStorage.getItem(STORAGE_KEYS.vaccineBirthDate), next = birthDate ? getNextVaccineGroup(birthDate) : null;
+    const parts = [];
+    if (favorite) parts.push(`<button type="button" data-tool="favorite-office">★ مكتبك: ${favorite.name}</button>`);
+    if (next?.group) parts.push(`<button type="button" data-tool="reminder">🛡️ ${next.complete ? "آخر جرعة مسجلة" : `التطعيم التالي: ${next.group.age}`}</button>`);
+    personalAssistantStatus.innerHTML = parts.join(""); personalAssistantStatus.classList.toggle("hidden", !parts.length);
+}
+function openAssistantTool(content) { if (!assistantToolModal || !assistantToolContent) return; assistantToolContent.innerHTML = content; assistantToolModal.classList.remove("hidden"); document.body.classList.add("assistant-tool-open"); assistantToolModal.querySelector("button, input")?.focus(); }
+function closeAssistantTool() { assistantToolModal?.classList.add("hidden"); document.body.classList.remove("assistant-tool-open"); }
+function renderNearbyTool(message = "") { openAssistantTool(`<div class="tool-hero"><span>📍</span><h2 id="assistantToolModalTitle">ابحث عن أقرب مكتب</h2></div><p>اسمح للموقع باستخدام موقعك لمرة واحدة فقط، وسنفتح بحث الخريطة حولك. لا يتم حفظ موقعك.</p><button class="tool-primary-button" type="button" data-action="find-nearby">تحديد موقعي والبحث</button><p class="tool-privacy-note">يمكنك أيضًا استخدام دليل جميع مكاتب الصحة واختيار منطقتك يدويًا.</p>${message ? `<p class="tool-inline-note">${message}</p>` : ""}`); }
+function findNearbyOffice() {
+    if (!navigator.geolocation) return renderNearbyTool("الموقع الجغرافي غير متاح على هذا الجهاز.");
+    navigator.geolocation.getCurrentPosition(position => {
+        const mapUrl = `https://www.google.com/maps/search/مكتب+صحة/@${position.coords.latitude},${position.coords.longitude},14z`;
+        openAssistantTool(`<div class="tool-hero"><span>✓</span><h2 id="assistantToolModalTitle">تم تحديد المنطقة</h2></div><p>افتح الخريطة الآن لعرض مكاتب الصحة القريبة من موقعك واختيار الأنسب.</p><a class="tool-primary-button" href="${mapUrl}" target="_blank" rel="noopener noreferrer">فتح المكاتب القريبة على الخريطة</a><button class="tool-secondary-button" type="button" data-action="open-office-directory">تصفح الدليل داخل المنصة</button><p class="tool-privacy-note">لم يتم حفظ موقعك.</p>`);
+    }, () => renderNearbyTool("لم يتم السماح بالموقع. يمكنك استخدام الدليل اليدوي بسهولة."), { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+}
+function renderDocumentsTool(serviceName = "") {
+    const selected = documentChecklists[serviceName] ? serviceName : "", choices = Object.keys(documentChecklists).map(name => `<button type="button" class="tool-choice ${name === selected ? "is-selected" : ""}" data-doc-service="${name}">${name}</button>`).join("");
+    const checklist = selected ? `<div class="document-checklist"><h3>المستندات المعتادة لخدمة ${selected}</h3>${documentChecklists[selected].map((item, index) => `<label><input type="checkbox" data-document-item="${index}"><span>${item}</span></label>`).join("")}</div><button class="tool-secondary-button" type="button" data-action="share-checklist" data-checklist-service="${selected}">مشاركة القائمة</button><p class="tool-privacy-note">قائمة إرشادية؛ قد تختلف بعض المستندات حسب الحالة، فاستفسر من المكتب قبل التوجه.</p>` : '<p class="tool-privacy-note">اختر الخدمة لتظهر لك قائمة مختصرة بما تحتاج إليه.</p>';
+    openAssistantTool(`<div class="tool-hero"><span>📄</span><h2 id="assistantToolModalTitle">ماذا أحتاج؟</h2></div><p>جهّز أوراقك قبل التوجه للمكتب.</p><div class="tool-choices">${choices}</div>${checklist}`);
+}
+function renderVaccineReminder(message = "") {
+    const birth = localStorage.getItem(STORAGE_KEYS.vaccineBirthDate) || "", next = birth ? getNextVaccineGroup(birth) : null;
+    const result = next?.group ? `<div class="vaccine-reminder-result"><span>${next.group.icon}</span><div><strong>${next.complete ? "آخر مرحلة في الجدول" : "التطعيم التالي"}</strong><p>${next.group.age} — ${next.group.label}</p>${next.dueDate ? `<p class="vaccine-due-date">التاريخ المتوقع: ${formatArabicDate(next.dueDate)}</p>` : ""}</div></div>` : "";
+    openAssistantTool(`<div class="tool-hero"><span>🛡️</span><h2 id="assistantToolModalTitle">تذكير تطعيم طفلي</h2></div><p>أدخل تاريخ ميلاد الطفل، وسيظهر لك موعد التطعيم المتوقع وفقًا للجدول الإرشادي.</p><label class="tool-input-label" for="vaccineBirthDate">تاريخ الميلاد</label><input id="vaccineBirthDate" class="tool-date-input" type="date" max="${new Date().toISOString().slice(0,10)}" value="${birth}"><button class="tool-primary-button" type="button" data-action="save-vaccine-date">عرض التذكير</button>${result}${message ? `<p class="tool-inline-note">${message}</p>` : ""}<p class="tool-privacy-note">التاريخ محفوظ على جهازك فقط. الموعد المتوقع إرشادي؛ في يوم التطعيم تأكد من مكتب الصحة قبل التوجه.</p>`);
+}
+function saveVaccineReminder() { const value = document.getElementById("vaccineBirthDate")?.value; if (!value || getChildAgeInMonths(value) === null) return renderVaccineReminder("من فضلك أدخل تاريخ ميلاد صحيح."); localStorage.setItem(STORAGE_KEYS.vaccineBirthDate, value); renderPersonalAssistantStatus(); renderVaccineReminder("تم حفظ التذكير على هذا الجهاز."); }
+async function shareText(title, text) { try { if (navigator.share) await navigator.share({ title, text }); else if (navigator.clipboard) { await navigator.clipboard.writeText(text); return "تم نسخ النص للمشاركة."; } return "تم فتح خيارات المشاركة."; } catch { return "لم تتم المشاركة الآن."; } }
+function rememberFeedback(service, helpful) { const items = readStoredJson(STORAGE_KEYS.feedback, []); items.push({service, helpful, date:new Date().toISOString()}); localStorage.setItem(STORAGE_KEYS.feedback, JSON.stringify(items.slice(-100))); }
+function rememberMissingRequest(text) { const items = readStoredJson(STORAGE_KEYS.missingRequests, []); items.push({text:text.slice(0,180), date:new Date().toISOString()}); localStorage.setItem(STORAGE_KEYS.missingRequests, JSON.stringify(items.slice(-100))); }
+function applySeniorMode(enabled) { document.documentElement.classList.toggle("senior-mode", enabled); seniorModeToggle?.classList.toggle("is-active", enabled); seniorModeToggle?.setAttribute("aria-pressed", String(enabled)); }
+function initSeniorMode() { applySeniorMode(localStorage.getItem(STORAGE_KEYS.seniorMode) === "true"); }
 
 function renderVaccinationGuide() {
     const cards = vaccinationSchedule.map((group, index) => `
@@ -605,6 +692,8 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
             response += `<a href="${service.link}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
         }
 
+        response += `<div class="service-utility-actions"><button type="button" data-action="share-service" data-service-name="${service.name}">↗ مشاركة الخدمة</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="yes">✓ أفادني</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="no">أحتاج توضيحًا</button></div>`;
+
         addMessage(response, "bot", `service-response ${service.special ? `response-${service.special}` : ""}`, {
             audio: service.media?.audio || ""
         });
@@ -789,7 +878,6 @@ function playAudioFile(source, feedbackTarget = null) {
             })
             .catch(() => {
                 if (feedbackTarget) showTinyFeedback(feedbackTarget, "اضغط مرة أخرى لتشغيل الصوت");
-                else showIntroAudioPrompt();
             });
     } else if (feedbackTarget) {
         showTinyFeedback(feedbackTarget, "جاري تشغيل الصوت");
@@ -797,10 +885,12 @@ function playAudioFile(source, feedbackTarget = null) {
 }
 
 function stopCurrentAudio() {
-    if (!currentAudio) return;
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio = null;
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+    if (introAudioPlaying) setIntroAudioFabState(false);
     window.speechSynthesis?.cancel();
 }
 
@@ -812,46 +902,23 @@ function getArabicVoice() {
         || voices.find(voice => voice.lang.toLowerCase().startsWith("ar"));
 }
 
-function scheduleIntroSpeech() {
-    window.setTimeout(handleIntroAudio, INTRO_SPEECH_DELAY);
+function setIntroAudioFabState(playing) {
+    introAudioPlaying = playing;
+    introAudioFab?.classList.toggle("is-playing", playing);
+    introAudioFab?.setAttribute("aria-label", playing ? "إيقاف رسالة الترحيب" : "سماع رسالة ترحيب");
+    if (introAudioFabIcon) introAudioFabIcon.textContent = playing ? "■" : "🔊";
+    if (introAudioFabLabel) introAudioFabLabel.textContent = playing ? "إيقاف الرسالة" : "رسالة ترحيب";
 }
 
-function handleIntroAudio() {
-    if (document.body.classList.contains("assistant-open")) return;
-
-    const playedBefore = localStorage.getItem(INTRO_AUDIO_PLAYED_KEY) === "1";
-    const suppressUntil = Number(localStorage.getItem(INTRO_AUDIO_SUPPRESS_UNTIL_KEY) || 0);
-
-    if (!playedBefore) {
-        playIntroAudio(true);
-        return;
-    }
-
-    if (suppressUntil && Date.now() < suppressUntil) return;
-
-    showIntroAudioPrompt();
-}
-
-function playIntroAudio(markAsPlayed = false) {
-    playAudioFile(INTRO_AUDIO_SRC);
-    if (markAsPlayed) localStorage.setItem(INTRO_AUDIO_PLAYED_KEY, "1");
-    hideIntroAudioPrompt();
-}
-
-function showIntroAudioPrompt() {
-    introAudioPrompt?.classList.remove("hidden");
-    introPlayBtn?.focus();
-}
-
-function hideIntroAudioPrompt() {
-    introAudioPrompt?.classList.add("hidden");
-    if (introDontShowAgain) introDontShowAgain.checked = false;
-}
-
-function rememberIntroPromptChoice() {
-    if (introDontShowAgain?.checked) {
-        localStorage.setItem(INTRO_AUDIO_SUPPRESS_UNTIL_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
-    }
+function playIntroAudio() {
+    if (introAudioPlaying) { stopCurrentAudio(); return; }
+    stopCurrentAudio();
+    currentAudio = new Audio(INTRO_AUDIO_SRC);
+    currentAudio.preload = "auto";
+    currentAudio.onended = () => { currentAudio = null; setIntroAudioFabState(false); };
+    currentAudio.onerror = () => { currentAudio = null; setIntroAudioFabState(false); };
+    setIntroAudioFabState(true);
+    currentAudio.play().catch(() => setIntroAudioFabState(false));
 }
 
 function cleanSpeechText(text) {
@@ -938,7 +1005,6 @@ function initTheme() {
 function finishSplash() {
     splash.classList.add("is-hidden");
     readerApp.classList.remove("is-loading");
-    scheduleIntroSpeech();
     scheduleInstallPrompt();
 }
 
@@ -995,10 +1061,6 @@ function shouldShowInstallPrompt() {
 
 function scheduleInstallPrompt() {
     window.setTimeout(() => {
-        if (introAudioPrompt && !introAudioPrompt.classList.contains("hidden")) {
-            scheduleInstallPrompt();
-            return;
-        }
         if (shouldShowInstallPrompt()) showInstallPrompt();
     }, INSTALL_PROMPT_DELAY);
 }
@@ -1073,7 +1135,8 @@ function respondLocally(text) {
     } else if (matches.length === 1) {
         selectService(matches[0].name, text, false, false);
     } else {
-        addMessage("Please provide more details, or choose from the main services.", "bot", "notice-msg");
+        rememberMissingRequest(text);
+        addMessage("لم أحدد الخدمة بدقة. تم تسجيل طلبك على هذا الجهاز ليساعدنا في تطوير الخدمات. جرّب وصف المطلوب بكلمات أبسط أو اختر من الخدمات الرئيسية.", "bot", "notice-msg");
     }
 }
 
@@ -1158,19 +1221,17 @@ installLaterBtn?.addEventListener("click", () => {
     hideInstallPrompt();
 });
 
-introPlayBtn?.addEventListener("click", () => {
-    rememberIntroPromptChoice();
-    playIntroAudio(true);
-});
-
-introSkipBtn?.addEventListener("click", () => {
-    rememberIntroPromptChoice();
-    hideIntroAudioPrompt();
-});
+introAudioFab?.addEventListener("click", playIntroAudio);
 
 themeToggle.addEventListener("click", () => {
     const current = document.documentElement.dataset.theme || "light";
     applyTheme(current === "dark" ? "light" : "dark");
+});
+
+seniorModeToggle?.addEventListener("click", () => {
+    const next = !document.documentElement.classList.contains("senior-mode");
+    localStorage.setItem(STORAGE_KEYS.seniorMode, String(next));
+    applySeniorMode(next);
 });
 
 userInput.addEventListener("keydown", event => {
@@ -1182,6 +1243,43 @@ assistantUserInput.addEventListener("keydown", event => {
 });
 
 document.addEventListener("click", event => {
+    const smartTool = event.target.closest("[data-tool]");
+    if (smartTool) {
+        const tool = smartTool.dataset.tool;
+        if (tool === "nearby") renderNearbyTool();
+        if (tool === "documents") renderDocumentsTool();
+        if (tool === "reminder") renderVaccineReminder();
+        if (tool === "emergency") selectService("خدمات الطوارئ");
+        if (tool === "favorite-office") { const favorite = getFavoriteOffice(); if (favorite) openOfficeModal(favorite); }
+        return;
+    }
+    if (event.target.closest("[data-tool-close]")) { closeAssistantTool(); return; }
+    if (event.target.closest("[data-action='find-nearby']")) { findNearbyOffice(); return; }
+    if (event.target.closest("[data-action='open-office-directory']")) { closeAssistantTool(); selectService("جميع مكاتب الصحة بالقاهرة"); return; }
+    const documentService = event.target.closest("[data-doc-service]");
+    if (documentService) { renderDocumentsTool(documentService.dataset.docService); return; }
+    if (event.target.closest("[data-action='save-vaccine-date']")) { saveVaccineReminder(); return; }
+    if (event.target.closest("[data-action='toggle-office-favorite']")) { toggleOfficeFavorite(); return; }
+    const shareChecklistButton = event.target.closest("[data-action='share-checklist']");
+    if (shareChecklistButton) {
+        const service = shareChecklistButton.dataset.checklistService;
+        shareText(`مستندات ${service}`, `المستندات الإرشادية لخدمة ${service}:\n- ${documentChecklists[service].join("\n- ")}`).then(result => { shareChecklistButton.textContent = result; });
+        return;
+    }
+    const shareServiceButton = event.target.closest("[data-action='share-service']");
+    if (shareServiceButton) {
+        const service = serviceByName.get(shareServiceButton.dataset.serviceName);
+        shareText(service?.name || "الخدمة الصحية", `${service?.name || "خدمة صحية"}\n${service?.msg || ""}\n${location.href}`).then(result => { shareServiceButton.textContent = result; });
+        return;
+    }
+    const feedbackButton = event.target.closest("[data-action='service-feedback']");
+    if (feedbackButton) {
+        rememberFeedback(feedbackButton.dataset.serviceName, feedbackButton.dataset.helpful === "yes");
+        const actions = feedbackButton.closest(".service-utility-actions");
+        if (actions) actions.innerHTML = `<span class="service-feedback-thanks">${feedbackButton.dataset.helpful === "yes" ? "شكرًا، سعداء أنها أفادتك." : "شكرًا، سنعمل على توضيحها بصورة أفضل."}</span>`;
+        return;
+    }
+
     const vaccineAgeCard = event.target.closest("[data-vaccine-age]");
     if (vaccineAgeCard) {
         openVaccineModal(vaccinationSchedule[Number(vaccineAgeCard.dataset.vaccineAge)]);
@@ -1299,6 +1397,10 @@ officeModal?.addEventListener("click", event => {
     if (event.target === officeModal) closeOfficeModal();
 });
 
+assistantToolModal?.addEventListener("click", event => {
+    if (event.target === assistantToolModal) closeAssistantTool();
+});
+
 vaccineModal?.addEventListener("click", event => {
     if (event.target === vaccineModal) closeVaccineModal();
 });
@@ -1311,6 +1413,10 @@ document.addEventListener("keydown", event => {
     }
     if (officeModal && !officeModal.classList.contains("hidden")) {
         closeOfficeModal();
+        return;
+    }
+    if (assistantToolModal && !assistantToolModal.classList.contains("hidden")) {
+        closeAssistantTool();
     }
 });
 
@@ -1414,7 +1520,9 @@ galleryStrip.addEventListener("pointerleave", () => pauseGalleryAutoScroll());
 
 window.addEventListener("load", () => {
     initTheme();
+    initSeniorMode();
     renderMainMenu();
+    renderPersonalAssistantStatus();
     renderTicker();
     renderGallery();
     initScrollMotion();

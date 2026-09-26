@@ -24,7 +24,7 @@
     <link rel="icon" type="image/png" href="assets/images/assistant-logo.png">
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles/main.css?v=20260925-4">
+    <link rel="stylesheet" href="styles/main.css?v=20260927-1">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
@@ -43,6 +43,7 @@
 
             <div class="toolbar-tools">
                 <button id="themeToggle" class="theme-toggle" type="button" aria-label="تبديل الوضع">🌙</button>
+                <button id="seniorModeToggle" class="senior-mode-toggle" type="button" aria-pressed="false" aria-label="تفعيل وضع كبار السن">كبير</button>
                 <div class="time-widget" aria-label="الوقت والتاريخ الحالي">
                     <strong id="clockTime">--:--</strong>
                     <span id="clockDate">--</span>
@@ -55,6 +56,17 @@
                 <p class="hello">أهلاً بيك</p>
                 <h2>اختار الخدمة المطلوبة</h2>
                 <p>اضغط على الخدمة، والمساعد هيعرض لك المطلوب بشكل واضح ومباشر.</p>
+            </section>
+
+            <section class="smart-tools" aria-label="أدوات المساعد السريعة">
+                <div class="smart-tools-head"><span>خدمات سريعة</span><small>اختصارات توفر عليك الوقت</small></div>
+                <div class="smart-tools-grid">
+                    <button class="smart-tool" type="button" data-tool="nearby"><span>📍</span>أقرب مكتب</button>
+                    <button class="smart-tool" type="button" data-tool="documents"><span>📄</span>ماذا أحتاج؟</button>
+                    <button class="smart-tool" type="button" data-tool="reminder"><span>🛡️</span>تطعيم طفلي</button>
+                    <button class="smart-tool tool-emergency" type="button" data-tool="emergency"><span>🚨</span>طوارئ الآن</button>
+                </div>
+                <div id="personalAssistantStatus" class="personal-assistant-status hidden"></div>
             </section>
 
             <section class="news-panel" aria-label="أخبار وتنبيهات">
@@ -143,6 +155,17 @@
         <img src="assets/images/assistant-logo.png" alt="">
     </button>
 
+    <button id="introAudioFab" class="intro-audio-fab" type="button" aria-label="سماع رسالة ترحيب">
+        <span class="intro-audio-fab-icon" aria-hidden="true">🔊</span><span class="intro-audio-fab-label">رسالة ترحيب</span>
+    </button>
+
+    <div id="assistantToolModal" class="assistant-tool-modal hidden" role="dialog" aria-modal="true" aria-labelledby="assistantToolModalTitle">
+        <div class="assistant-tool-shell">
+            <div class="assistant-tool-topbar"><span>المساعد الذكي</span><button class="assistant-tool-close" type="button" data-tool-close aria-label="إغلاق">×</button></div>
+            <div id="assistantToolContent" class="assistant-tool-content"></div>
+        </div>
+    </div>
+
     <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="عرض الصورة">
         <div class="image-modal-bar">
             <div class="image-tools">
@@ -177,6 +200,7 @@
                 <a id="officeModalMap" class="office-map-button" href="#" target="_blank" rel="noopener noreferrer">
                     <span aria-hidden="true">📍</span> فتح الموقع الجغرافي
                 </a>
+                <button id="officeFavoriteBtn" class="office-favorite-button" type="button" data-action="toggle-office-favorite"><span aria-hidden="true">☆</span> حفظ كمكتبي المعتاد</button>
                 <p class="office-modal-note">يُفضّل التأكد من المكتب قبل التوجه إليه.</p>
             </div>
         </div>
@@ -201,22 +225,6 @@
         </div>
     </div>
 
-    <div id="introAudioPrompt" class="intro-audio-prompt hidden" role="dialog" aria-modal="true" aria-labelledby="introAudioTitle">
-        <div class="intro-audio-card">
-            <div class="intro-audio-icon" aria-hidden="true">🔊</div>
-            <h2 id="introAudioTitle">هل تريد سماع رسالة الترحيب؟</h2>
-            <p>رسالة قصيرة تشرح لك طريقة استخدام المساعد وسماع الخدمات.</p>
-            <label class="intro-audio-check">
-                <input id="introDontShowAgain" type="checkbox">
-                عدم إظهار الرسالة مرة أخرى لمدة 24 ساعة
-            </label>
-            <div class="intro-audio-actions">
-                <button id="introPlayBtn" class="install-primary" type="button">اسمع الرسالة</button>
-                <button id="introSkipBtn" class="install-secondary" type="button">لا، شكرًا</button>
-            </div>
-        </div>
-    </div>
-
     <div id="installPrompt" class="install-prompt hidden" role="dialog" aria-modal="true" aria-labelledby="installPromptTitle">
         <div class="install-card">
             <div class="install-icon" aria-hidden="true">📱</div>
@@ -236,6 +244,6 @@
     <script src="data/gallery.js?v=20260625-1"></script>
     <script src="data/ai-config.js?v=20260731-1"></script>
     <script src="scripts/ai-api.js?v=20260731-1"></script>
-    <script src="scripts/app.js?v=20260925-4"></script>
+    <script src="scripts/app.js?v=20260927-1"></script>
 </body>
 </html>
