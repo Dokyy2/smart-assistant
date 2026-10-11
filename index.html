@@ -19,18 +19,28 @@
     <meta name="twitter:description" content="من حقك تعرف ومن واجبنا نساعدك.">
     <meta name="twitter:image" content="assets/images/assistant-logo.png">
     <meta name="twitter:image:alt" content="شعار المساعد الذكي">
-    <meta name="theme-color" content="#1769d1">
+    <meta name="theme-color" content="#071522">
     <title>المساعد الذكي - مكاتب الصحة</title>
     <link rel="icon" type="image/png" href="assets/images/assistant-logo.png">
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles/main.css?v=20260927-1">
+    <link rel="stylesheet" href="styles/main.css?v=20261012-3">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
         <div class="splash-mark">
-            <img src="assets/images/assistant-logo.png" alt="شعار المساعد الذكي" class="splash-logo">
-            <p class="splash-slogan">من حقك تعرف ومن واجبنا نساعدك</p>
+            <p class="splash-kicker"><span aria-hidden="true"></span> دليلك لخدمات مكاتب الصحة</p>
+            <div class="splash-visual">
+                <span class="splash-visual-ring splash-visual-ring-one"></span>
+                <span class="splash-visual-ring splash-visual-ring-two"></span>
+                <span class="splash-visual-particle splash-visual-particle-one">💉</span>
+                <span class="splash-visual-particle splash-visual-particle-two">🩹</span>
+                <img src="assets/images/assistant-logo.png" alt="شعار المساعد الذكي" class="splash-logo">
+            </div>
+            <div class="splash-welcome">
+                <p class="splash-slogan">من حقك تعرف <span aria-hidden="true">·</span> ومن واجبنا نساعدك</p>
+                <div class="splash-loader" aria-hidden="true"><span></span></div>
+            </div>
         </div>
     </div>
 
@@ -43,7 +53,7 @@
 
             <div class="toolbar-tools">
                 <button id="themeToggle" class="theme-toggle" type="button" aria-label="تبديل الوضع">🌙</button>
-                <button id="seniorModeToggle" class="senior-mode-toggle" type="button" aria-pressed="false" aria-label="تفعيل وضع كبار السن">كبير</button>
+                <button id="seniorModeToggle" class="senior-mode-toggle" type="button" aria-pressed="false" aria-label="تفعيل وضع كبار السن"><span>كبير</span><span class="senior-mode-mark" aria-hidden="true">A+</span></button>
                 <div class="time-widget" aria-label="الوقت والتاريخ الحالي">
                     <strong id="clockTime">--:--</strong>
                     <span id="clockDate">--</span>
@@ -53,9 +63,24 @@
 
         <main class="main">
             <section class="hero" aria-label="رسالة ترحيب">
-                <p class="hello">أهلاً بيك</p>
-                <h2>اختار الخدمة المطلوبة</h2>
-                <p>اضغط على الخدمة، والمساعد هيعرض لك المطلوب بشكل واضح ومباشر.</p>
+                <div class="hero-copy">
+                    <p class="hello">أهلاً بيك <span aria-hidden="true">✦</span></p>
+                    <h2>خدماتك الصحية أقرب وأسهل</h2>
+                    <p>قولنا محتاج إيه، أو اختار الخدمة المناسبة ليك. هنمشي معاك خطوة بخطوة.</p>
+                    <div class="hero-actions">
+                        <button id="heroAssistantBtn" class="hero-primary-action" type="button"><span aria-hidden="true">✦</span> اسأل المساعد</button>
+                        <a class="hero-secondary-action" href="#menuPanel">تصفح الخدمات <span aria-hidden="true">↓</span></a>
+                    </div>
+                </div>
+                <div class="hero-orbit" aria-hidden="true">
+                    <span class="hero-orbit-ring hero-orbit-ring-one"></span>
+                    <span class="hero-orbit-ring hero-orbit-ring-two"></span>
+                    <span class="hero-orbit-core"><span>✚</span></span>
+                    <span class="hero-orbit-node hero-orbit-node-one">👶</span>
+                    <span class="hero-orbit-node hero-orbit-node-two">💉</span>
+                    <span class="hero-orbit-node hero-orbit-node-three">🏥</span>
+                    <span class="hero-orbit-node hero-orbit-node-four">📍</span>
+                </div>
             </section>
 
             <section class="smart-tools" aria-label="أدوات المساعد السريعة">
@@ -66,7 +91,7 @@
                     <button class="smart-tool" type="button" data-tool="reminder"><span>🛡️</span>تطعيم طفلي</button>
                     <button class="smart-tool tool-emergency" type="button" data-tool="emergency"><span>🚨</span>طوارئ الآن</button>
                 </div>
-                <div id="personalAssistantStatus" class="personal-assistant-status hidden"></div>
+                <div id="personalAssistantStatus" class="personal-assistant-status hidden" aria-live="polite"></div>
             </section>
 
             <section class="news-panel" aria-label="أخبار وتنبيهات">
@@ -103,7 +128,7 @@
                 <div id="servicesGrid" class="services-grid"></div>
 
                 <button id="showSearchBtn" class="secondary-btn" type="button">
-                    <span aria-hidden="true">🤖</span>
+                    <span aria-hidden="true">💬</span>
                     لم أجد ما أبحث عنه
                 </button>
 
@@ -118,7 +143,7 @@
                 </section>
 
                 <div id="inputGroup" class="input-group hidden">
-                    <input id="userInput" placeholder="اكتب اسم الخدمة، مثال: ورق الوفاة" autocomplete="off">
+                    <div class="input-with-voice"><input id="userInput" placeholder="اكتب اسم الخدمة، مثال: ورق الوفاة" autocomplete="off"><button class="voice-input hidden" type="button" data-voice-input="userInput" aria-label="اكتب سؤالك بالصوت" title="قد يتطلب إدخال الصوت اتصالًا بالإنترنت بحسب المتصفح">🎙️</button></div>
                     <button id="sendBtn" class="send-btn" type="button">إرسال</button>
                 </div>
             </section>
@@ -127,7 +152,7 @@
                 <button id="floatingBackBtn" class="floating-back" type="button" aria-label="الرجوع للخدمات الرئيسية">↩</button>
                 <section id="chatArea" class="chat-area" aria-live="polite"></section>
                 <div id="assistantInputGroup" class="input-group assistant-input hidden">
-                    <input id="assistantUserInput" placeholder="مثال: عايز أعرف ورق الوفاة" autocomplete="off">
+                    <div class="input-with-voice"><input id="assistantUserInput" placeholder="مثال: عايز أعرف ورق الوفاة" autocomplete="off"><button class="voice-input hidden" type="button" data-voice-input="assistantUserInput" aria-label="اكتب سؤالك بالصوت" title="قد يتطلب إدخال الصوت اتصالًا بالإنترنت بحسب المتصفح">🎙️</button></div>
                     <button id="assistantSendBtn" class="send-btn" type="button">إرسال</button>
                 </div>
                 <button id="backToServicesBtn" class="back-btn" type="button">
@@ -147,7 +172,7 @@
                     <path d="M8.5 7.85c.16-.38.33-.39.61-.39h.52c.17 0 .36.03.44.27l.62 1.54c.08.2.05.39-.08.53l-.4.47c-.12.13-.25.26-.1.5.15.26.67 1.1 1.44 1.78.99.88 1.82 1.15 2.08 1.29.26.13.41.11.56-.07l.7-.82c.16-.19.34-.16.57-.08l1.45.68c.24.12.4.17.45.27.06.1.06.59-.14 1.16-.19.57-1.1 1.09-1.52 1.15-.4.06-.9.09-1.46-.09-.34-.11-.78-.26-1.34-.5-2.36-1.02-3.9-3.42-4.02-3.59-.12-.17-.96-1.27-.96-2.42 0-1.16.6-1.72.81-1.96Z" fill="currentColor"/>
                 </svg>
             </a>
-            <small>Last update : 25-09-2026</small>
+            <small>آخر تحديث : 11-10-2026</small>
         </footer>
     </div>
 
@@ -156,7 +181,7 @@
     </button>
 
     <button id="introAudioFab" class="intro-audio-fab" type="button" aria-label="سماع رسالة ترحيب">
-        <span class="intro-audio-fab-icon" aria-hidden="true">🔊</span><span class="intro-audio-fab-label">رسالة ترحيب</span>
+        <span class="intro-audio-fab-icon" aria-hidden="true">🔊</span><span class="intro-audio-fab-label">اسمعني أشرحلك</span>
     </button>
 
     <div id="assistantToolModal" class="assistant-tool-modal hidden" role="dialog" aria-modal="true" aria-labelledby="assistantToolModalTitle">
@@ -169,6 +194,9 @@
     <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="عرض الصورة">
         <div class="image-modal-bar">
             <div class="image-tools">
+                <button type="button" data-image-tool="zoom-in" aria-label="تكبير الصورة">+</button>
+                <button type="button" data-image-tool="zoom-out" aria-label="تصغير الصورة">−</button>
+                <button type="button" data-image-tool="reset" aria-label="إعادة ضبط حجم الصورة">↺</button>
                 <button type="button" data-image-tool="close" aria-label="إغلاق الصورة">×</button>
             </div>
         </div>
@@ -239,11 +267,11 @@
 
     <script src="data/cairo-health-offices.js?v=20260925-1"></script>
     <script src="data/vaccination-schedule.js?v=20260925-1"></script>
-    <script src="data/services.js?v=20260925-1"></script>
+    <script src="data/services.js?v=20261012-3"></script>
     <script src="data/announcements.js?v=20260625-1"></script>
     <script src="data/gallery.js?v=20260625-1"></script>
     <script src="data/ai-config.js?v=20260731-1"></script>
     <script src="scripts/ai-api.js?v=20260731-1"></script>
-    <script src="scripts/app.js?v=20260927-1"></script>
+    <script src="scripts/app.js?v=20261012-3"></script>
 </body>
 </html>

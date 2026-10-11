@@ -53,6 +53,7 @@ const vaccineModalList = document.getElementById("vaccineModalList");
 const assistantToolModal = document.getElementById("assistantToolModal");
 const assistantToolContent = document.getElementById("assistantToolContent");
 const personalAssistantStatus = document.getElementById("personalAssistantStatus");
+const voiceInputButtons = [...document.querySelectorAll("[data-voice-input]")];
 
 let imageScale = 1;
 let imageOffset = { x: 0, y: 0 };
@@ -82,10 +83,14 @@ const arabicNumberFormatter = new Intl.NumberFormat("ar-EG");
 const STORAGE_KEYS = {
     favoriteOffice: "healthAssistantFavoriteOffice",
     vaccineBirthDate: "healthAssistantVaccineBirthDate",
+    vaccineHistory: "healthAssistantVaccineHistory",
     feedback: "healthAssistantFeedback",
     missingRequests: "healthAssistantMissingRequests",
     seniorMode: "healthAssistantSeniorMode",
-    customAnnouncements: "healthAssistantCustomAnnouncements"
+    customAnnouncements: "healthAssistantCustomAnnouncements",
+    journeys: "healthAssistantJourneys",
+    legacyJourney: "healthAssistantActiveJourney",
+    documentChecklist: "healthAssistantDocumentChecklist"
 };
 const documentChecklists = {
     "تسجيل المواليد": ["أصل إخطار المولود", "بطاقة الرقم القومي للأب والأم", "قسيمة الزواج أو قسيمة كمبيوتر حديثة", "صورتان من كل بطاقة ومستند"],
@@ -271,6 +276,18 @@ function closeOfficeModal() {
 }
 
 function readStoredJson(key, fallback) { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
+function readJourneys() {
+    const journeys = readStoredJson(STORAGE_KEYS.journeys, null);
+    if (journeys && typeof journeys === "object" && !Array.isArray(journeys)) return journeys;
+    const legacy = readStoredJson(STORAGE_KEYS.legacyJourney, null);
+    if (legacy?.service) {
+        const migrated = { [legacy.service]: legacy };
+        localStorage.setItem(STORAGE_KEYS.journeys, JSON.stringify(migrated));
+        localStorage.removeItem(STORAGE_KEYS.legacyJourney);
+        return migrated;
+    }
+    return {};
+}
 function getFavoriteOffice() { return readStoredJson(STORAGE_KEYS.favoriteOffice, null); }
 function sameOffice(first, second) { return Boolean(first && second && first.name === second.name && first.address === second.address); }
 function updateOfficeFavoriteButton() {
@@ -308,10 +325,83 @@ function renderPersonalAssistantStatus() {
     const parts = [];
     if (favorite) parts.push(`<button type="button" data-tool="favorite-office">★ مكتبك: ${favorite.name}</button>`);
     if (next?.group) parts.push(`<button type="button" data-tool="reminder">🛡️ ${next.complete ? "آخر جرعة مسجلة" : `التطعيم التالي: ${next.group.age}`}</button>`);
+    Object.values(readJourneys()).forEach(journey => {
+        if (journey?.service) parts.push(`<button type="button" data-action="resume-journey" data-journey-service="${journey.service}">🧭 استكمل: ${journey.service}</button>`);
+    });
+    if (!navigator.onLine) parts.push('<span class="offline-status" role="status">أنت غير متصل؛ الخدمات الأساسية المحفوظة متاحة، وقد تحتاج الروابط الخارجية للإنترنت.</span>');
     personalAssistantStatus.innerHTML = parts.join(""); personalAssistantStatus.classList.toggle("hidden", !parts.length);
 }
 function openAssistantTool(content) { if (!assistantToolModal || !assistantToolContent) return; assistantToolContent.innerHTML = content; assistantToolModal.classList.remove("hidden"); document.body.classList.add("assistant-tool-open"); assistantToolModal.querySelector("button, input")?.focus(); }
 function closeAssistantTool() { assistantToolModal?.classList.add("hidden"); document.body.classList.remove("assistant-tool-open"); }
+function getJourneyItems(serviceName) {
+    const documents = documentChecklists[serviceName] || [];
+    return [
+        `راجعت معلومات خدمة ${serviceName}`,
+        ...documents.map(document => `جهّزت: ${document}`),
+        "حددت مكتب الصحة المختص بمنطقتك",
+        "تأكدت من المستندات والمواعيد قبل التوجه"
+    ];
+}
+function renderJourneyTool(serviceName) {
+    const journeys = readJourneys();
+    const journey = journeys[serviceName] || (!serviceName ? Object.values(journeys)[0] : null);
+    if (!journey?.service) return;
+    const items = getJourneyItems(journey.service), done = new Set(journey.done || []);
+    const completed = items.filter((_, index) => done.has(index)).length;
+    const checklist = items.map((item, index) => `<label class="journey-step"><input type="checkbox" data-journey-step="${index}" data-journey-service="${journey.service}" ${done.has(index) ? "checked" : ""}><span>${item}</span></label>`).join("");
+    openAssistantTool(`<div class="tool-hero"><span>🧭</span><h2 id="assistantToolModalTitle">رحلتك: ${journey.service}</h2></div><p>كمّل الخطوات براحتك؛ تقدمك محفوظ على هذا الجهاز.</p><div class="journey-progress"><div><span>إنجاز الرحلة</span><strong id="journeyProgressCount" aria-live="polite">${completed} من ${items.length}</strong></div><div class="journey-progress-track"><span id="journeyProgressBar" style="width:${Math.round(completed / items.length * 100)}%"></span></div></div><div class="journey-checklist">${checklist}</div><p class="tool-privacy-note">المعلومات إرشادية وقد تتغير الإجراءات؛ تأكد من المكتب المختص قبل التوجه. تقدمك محفوظ على جهازك فقط.</p><button class="tool-primary-button" type="button" data-action="find-nearby">اعرف أقرب مكتب صحة</button><button class="tool-secondary-button" type="button" data-action="open-office-directory">افتح دليل مكاتب الصحة</button><button class="tool-secondary-button" type="button" data-action="share-journey">مشاركة خطوات الرحلة</button><button class="tool-secondary-button" type="button" data-action="print-checklist">طباعة الخطوات</button><button class="tool-secondary-button journey-clear-button" type="button" data-action="clear-journey">مسح الرحلة المحفوظة</button><button class="tool-secondary-button" type="button" data-action="clear-local-data">مسح البيانات المحفوظة على الجهاز</button>`);
+}
+function startJourney(serviceName) {
+    const journeys = readJourneys();
+    const journey = journeys[serviceName] || { service: serviceName, done: [], updatedAt: new Date().toISOString() };
+    journeys[serviceName] = journey;
+    localStorage.setItem(STORAGE_KEYS.journeys, JSON.stringify(journeys));
+    renderPersonalAssistantStatus();
+    renderJourneyTool(serviceName);
+}
+function updateJourneyProgress(input) {
+    const journeys = readJourneys();
+    const journey = journeys[input.dataset.journeyService];
+    if (!journey?.service) return;
+    const done = new Set(journey.done || []), index = Number(input.dataset.journeyStep);
+    if (input.checked) done.add(index); else done.delete(index);
+    journey.done = [...done];
+    journey.updatedAt = new Date().toISOString();
+    journeys[journey.service] = journey;
+    localStorage.setItem(STORAGE_KEYS.journeys, JSON.stringify(journeys));
+    const total = getJourneyItems(journey.service).length;
+    const completed = journey.done.length;
+    const count = document.getElementById("journeyProgressCount"), bar = document.getElementById("journeyProgressBar");
+    if (count) count.textContent = `${completed} من ${total}`;
+    if (bar) bar.style.width = `${Math.round(completed / total * 100)}%`;
+    renderPersonalAssistantStatus();
+}
+function clearJourney() {
+    if (!window.confirm("هل تريد مسح تقدم الرحلة المحفوظ؟")) return;
+    const journeys = readJourneys();
+    const serviceName = assistantToolContent.querySelector("[data-journey-step]")?.dataset.journeyService;
+    if (serviceName) delete journeys[serviceName];
+    localStorage.setItem(STORAGE_KEYS.journeys, JSON.stringify(journeys));
+    renderPersonalAssistantStatus();
+    closeAssistantTool();
+}
+function clearLocalHealthData() {
+    if (!window.confirm("سيتم حذف رحلتك وقوائمك المحفوظة والمكتب المفضل وتذكير التطعيم والطلبات المسجلة على هذا الجهاز. هل تريد المتابعة؟")) return;
+    [STORAGE_KEYS.journeys, STORAGE_KEYS.legacyJourney, STORAGE_KEYS.documentChecklist, STORAGE_KEYS.favoriteOffice, STORAGE_KEYS.vaccineBirthDate, STORAGE_KEYS.vaccineHistory, STORAGE_KEYS.feedback, STORAGE_KEYS.missingRequests].forEach(key => localStorage.removeItem(key));
+    renderPersonalAssistantStatus();
+    openAssistantTool('<div class="tool-hero"><span>✓</span><h2 id="assistantToolModalTitle">تم مسح البيانات المحفوظة</h2></div><p>تم حذف المعلومات المحلية التي حددتها. تفضيلات المظهر ووضع كبار السن لم تتغير.</p><button class="tool-primary-button" type="button" data-tool-close>حسنًا</button>');
+}
+function saveDocumentChecklist(input) {
+    const serviceName = input.dataset.checklistService;
+    const saved = readStoredJson(STORAGE_KEYS.documentChecklist, {});
+    saved[serviceName] ||= [];
+    saved[serviceName][Number(input.dataset.documentItem)] = input.checked;
+    localStorage.setItem(STORAGE_KEYS.documentChecklist, JSON.stringify(saved));
+}
+function printAssistantTool() {
+    document.body.classList.add("print-assistant-tool");
+    window.print();
+}
 function renderNearbyTool(message = "") { openAssistantTool(`<div class="tool-hero"><span>📍</span><h2 id="assistantToolModalTitle">ابحث عن أقرب مكتب</h2></div><p>اسمح للموقع باستخدام موقعك لمرة واحدة فقط، وسنفتح بحث الخريطة حولك. لا يتم حفظ موقعك.</p><button class="tool-primary-button" type="button" data-action="find-nearby">تحديد موقعي والبحث</button><p class="tool-privacy-note">يمكنك أيضًا استخدام دليل جميع مكاتب الصحة واختيار منطقتك يدويًا.</p>${message ? `<p class="tool-inline-note">${message}</p>` : ""}`); }
 function findNearbyOffice() {
     if (!navigator.geolocation) return renderNearbyTool("الموقع الجغرافي غير متاح على هذا الجهاز.");
@@ -322,13 +412,17 @@ function findNearbyOffice() {
 }
 function renderDocumentsTool(serviceName = "") {
     const selected = documentChecklists[serviceName] ? serviceName : "", choices = Object.keys(documentChecklists).map(name => `<button type="button" class="tool-choice ${name === selected ? "is-selected" : ""}" data-doc-service="${name}">${name}</button>`).join("");
-    const checklist = selected ? `<div class="document-checklist"><h3>المستندات المعتادة لخدمة ${selected}</h3>${documentChecklists[selected].map((item, index) => `<label><input type="checkbox" data-document-item="${index}"><span>${item}</span></label>`).join("")}</div><button class="tool-secondary-button" type="button" data-action="share-checklist" data-checklist-service="${selected}">مشاركة القائمة</button><p class="tool-privacy-note">قائمة إرشادية؛ قد تختلف بعض المستندات حسب الحالة، فاستفسر من المكتب قبل التوجه.</p>` : '<p class="tool-privacy-note">اختر الخدمة لتظهر لك قائمة مختصرة بما تحتاج إليه.</p>';
-    openAssistantTool(`<div class="tool-hero"><span>📄</span><h2 id="assistantToolModalTitle">ماذا أحتاج؟</h2></div><p>جهّز أوراقك قبل التوجه للمكتب.</p><div class="tool-choices">${choices}</div>${checklist}`);
+    const savedChecks = readStoredJson(STORAGE_KEYS.documentChecklist, {})[selected] || [];
+    const checklist = selected ? `<div class="document-checklist"><h3>المستندات المعتادة لخدمة ${selected}</h3>${documentChecklists[selected].map((item, index) => `<label><input type="checkbox" data-document-item="${index}" data-checklist-service="${selected}" ${savedChecks[index] ? "checked" : ""}><span>${item}</span></label>`).join("")}</div><button class="tool-secondary-button" type="button" data-action="share-checklist" data-checklist-service="${selected}">مشاركة القائمة</button><button class="tool-secondary-button" type="button" data-action="print-checklist">طباعة القائمة</button><p class="tool-privacy-note">قائمة إرشادية؛ قد تختلف بعض المستندات حسب الحالة، فاستفسر من المكتب قبل التوجه. علاماتك محفوظة على هذا الجهاز فقط.</p>` : '<p class="tool-privacy-note">اختر الخدمة لتظهر لك قائمة مختصرة بما تحتاج إليه.</p>';
+    openAssistantTool(`<div class="tool-hero"><span>📄</span><h2 id="assistantToolModalTitle">ماذا أحتاج؟</h2></div><p>جهّز أوراقك قبل التوجه للمكتب.</p><div class="tool-choices">${choices}</div>${checklist}<button class="tool-secondary-button" type="button" data-action="clear-local-data">مسح البيانات المحفوظة على الجهاز</button>`);
 }
 function renderVaccineReminder(message = "") {
     const birth = localStorage.getItem(STORAGE_KEYS.vaccineBirthDate) || "", next = birth ? getNextVaccineGroup(birth) : null;
-    const result = next?.group ? `<div class="vaccine-reminder-result"><span>${next.group.icon}</span><div><strong>${next.complete ? "آخر مرحلة في الجدول" : "التطعيم التالي"}</strong><p>${next.group.age} — ${next.group.label}</p>${next.dueDate ? `<p class="vaccine-due-date">التاريخ المتوقع: ${formatArabicDate(next.dueDate)}</p>` : ""}</div></div>` : "";
-    openAssistantTool(`<div class="tool-hero"><span>🛡️</span><h2 id="assistantToolModalTitle">تذكير تطعيم طفلي</h2></div><p>أدخل تاريخ ميلاد الطفل، وسيظهر لك موعد التطعيم المتوقع وفقًا للجدول الإرشادي.</p><label class="tool-input-label" for="vaccineBirthDate">تاريخ الميلاد</label><input id="vaccineBirthDate" class="tool-date-input" type="date" max="${new Date().toISOString().slice(0,10)}" value="${birth}"><button class="tool-primary-button" type="button" data-action="save-vaccine-date">عرض التذكير</button>${result}${message ? `<p class="tool-inline-note">${message}</p>` : ""}<p class="tool-privacy-note">التاريخ محفوظ على جهازك فقط. الموعد المتوقع إرشادي؛ في يوم التطعيم تأكد من مكتب الصحة قبل التوجه.</p>`);
+    const history = readStoredJson(STORAGE_KEYS.vaccineHistory, {});
+    const previous = birth ? history[birth] : "";
+    const result = next?.group && previous === "yes" ? `<div class="vaccine-reminder-result"><span>${next.group.icon}</span><div><strong>${next.complete ? "آخر مرحلة في الجدول" : "التطعيم التالي"}</strong><p>${next.group.age} — ${next.group.label}</p>${next.dueDate ? `<p class="vaccine-due-date">التاريخ المتوقع: ${formatArabicDate(next.dueDate)}</p>` : ""}</div></div>` : birth && previous === "no" ? '<p class="tool-inline-note">خد شهادة التطعيم لأقرب مكتب صحة علشان يراجع الجرعات ويحدد المناسب لطفلك.</p>' : birth ? '<p class="tool-inline-note">جاوب على السؤال علشان نعرض لك التذكير المناسب.</p>' : "";
+    const historyQuestion = birth ? `<fieldset class="vaccine-history"><legend>هل أخد طفلك كل التطعيمات اللي فاتت؟</legend><label><input type="radio" name="vaccineHistory" value="yes" ${previous === "yes" ? "checked" : ""}> أيوه، أخدها كلها</label><label><input type="radio" name="vaccineHistory" value="no" ${previous === "no" ? "checked" : ""}> لأ / مش متأكد</label></fieldset>` : "";
+    openAssistantTool(`<div class="tool-hero"><span>🛡️</span><h2 id="assistantToolModalTitle">تذكير تطعيم طفلي</h2></div><p>أدخل تاريخ ميلاد الطفل علشان نعرض لك التطعيم المتوقع.</p><label class="tool-input-label" for="vaccineBirthDate">تاريخ الميلاد</label><input id="vaccineBirthDate" class="tool-date-input" type="date" max="${new Date().toISOString().slice(0,10)}" value="${birth}"><button class="tool-primary-button" type="button" data-action="save-vaccine-date">عرض التذكير</button>${historyQuestion}${result}${message ? `<p class="tool-inline-note">${message}</p>` : ""}<p class="tool-privacy-note">مواعيد التطعيمات بتختلف من مكتب للتاني. أما عينة فحص الغدة الدرقية لحديثي الولادة فتُسحب عادةً يومي السبت والثلاثاء من كل أسبوع في الوحدات الصحية بجميع المحافظات، من اليوم الثالث للسابع بعد الولادة. اتأكد من المكتب قبل ما تروح. بياناتك محفوظة على جهازك فقط.</p>`);
 }
 function saveVaccineReminder() { const value = document.getElementById("vaccineBirthDate")?.value; if (!value || getChildAgeInMonths(value) === null) return renderVaccineReminder("من فضلك أدخل تاريخ ميلاد صحيح."); localStorage.setItem(STORAGE_KEYS.vaccineBirthDate, value); renderPersonalAssistantStatus(); renderVaccineReminder("تم حفظ التذكير على هذا الجهاز."); }
 async function shareText(title, text) { try { if (navigator.share) await navigator.share({ title, text }); else if (navigator.clipboard) { await navigator.clipboard.writeText(text); return "تم نسخ النص للمشاركة."; } return "تم فتح خيارات المشاركة."; } catch { return "لم تتم المشاركة الآن."; } }
@@ -336,6 +430,43 @@ function rememberFeedback(service, helpful) { const items = readStoredJson(STORA
 function rememberMissingRequest(text) { const items = readStoredJson(STORAGE_KEYS.missingRequests, []); items.push({text:text.slice(0,180), date:new Date().toISOString()}); localStorage.setItem(STORAGE_KEYS.missingRequests, JSON.stringify(items.slice(-100))); }
 function applySeniorMode(enabled) { document.documentElement.classList.toggle("senior-mode", enabled); seniorModeToggle?.classList.toggle("is-active", enabled); seniorModeToggle?.setAttribute("aria-pressed", String(enabled)); }
 function initSeniorMode() { applySeniorMode(localStorage.getItem(STORAGE_KEYS.seniorMode) === "true"); }
+function initVoiceInput() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return;
+    const recognition = new Recognition();
+    recognition.lang = "ar-EG";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    let activeInputId = "";
+    voiceInputButtons.forEach(button => {
+        button.classList.remove("hidden");
+        button.addEventListener("click", () => {
+            if (button.classList.contains("is-listening")) {
+                recognition.stop();
+                return;
+            }
+            activeInputId = button.dataset.voiceInput;
+            try {
+                recognition.start();
+            } catch {
+                button.title = "انتظر لحظة ثم حاول استخدام الميكروفون مرة أخرى.";
+            }
+        });
+    });
+    recognition.onstart = () => voiceInputButtons.forEach(button => button.classList.toggle("is-listening", button.dataset.voiceInput === activeInputId));
+    recognition.onresult = event => {
+        const input = document.getElementById(activeInputId);
+        if (!input) return;
+        input.value = event.results[0][0].transcript;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.focus();
+    };
+    recognition.onerror = event => {
+        const button = voiceInputButtons.find(item => item.dataset.voiceInput === activeInputId);
+        if (button && event.error !== "aborted" && event.error !== "no-speech") button.title = "تعذر استخدام الميكروفون؛ تحقق من الإذن أو اكتب سؤالك.";
+    };
+    recognition.onend = () => voiceInputButtons.forEach(button => button.classList.remove("is-listening"));
+}
 
 function renderVaccinationGuide() {
     const cards = vaccinationSchedule.map((group, index) => `
@@ -506,6 +637,9 @@ function openImageModal(source, title, alt, index = 0) {
     pinchStart = null;
     modalImage.src = source;
     modalImage.alt = alt;
+    modalImage.classList.remove("image-arrive");
+    void modalImage.offsetWidth;
+    modalImage.classList.add("image-arrive");
     if (modalImageTitle) modalImageTitle.textContent = title;
     updateModalImage();
     imageModal.classList.remove("hidden");
@@ -692,84 +826,26 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
             response += `<a href="${service.link}" target="_blank" rel="noopener noreferrer" class="btn-link">عرض المزيد</a>`;
         }
 
-        response += `<div class="service-utility-actions"><button type="button" data-action="share-service" data-service-name="${service.name}">↗ مشاركة الخدمة</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="yes">✓ أفادني</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="no">أحتاج توضيحًا</button></div>`;
+        response += `<button class="journey-start-button" type="button" data-action="open-journey" data-journey-service="${service.name}">🧭 ابدأ رحلتك خطوة بخطوة</button><div class="service-utility-actions"><button type="button" data-action="share-service" data-service-name="${service.name}">↗ مشاركة الخدمة</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="yes">✓ أفادني</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="no">أحتاج توضيحًا</button></div>`;
 
         addMessage(response, "bot", `service-response ${service.special ? `response-${service.special}` : ""}`, {
             audio: service.media?.audio || ""
         });
-    }, 1100);
-}
-
-function startTextAssistant() {
-    enterAssistantMode();
-    chatArea.innerHTML = "";
-    assistantInputGroup.classList.remove("hidden");
-
-    showTyping();
-    setTimeout(() => {
-        removeTyping();
-        addMessage(getAssistantWelcome(), "bot", "notice-msg");
-        assistantUserInput.focus();
-    }, 1300);
+    }, 4100);
 }
 
 function getAssistantWelcome() {
-    return `
-        👋 أهلاً بيك<br><br>
-        لو محتار تبدأ منين أو مش عارف الإجراءات تمشي إزاي… أنا هنا علشان أساعدك 🤍<br><br>
-        💬 قولّي عايز تعمل إيه<br>
-        وأنا هقولك تعمل إيه خطوة خطوة بشكل بسيط وواضح<br><br>
-        ✨ <b>جرب تدوس هنا دلوقتي:</b><br>
-        <button class="option-btn" type="button" data-quick-send="عايز أطلع شهادة ميلاد">👉 عايز أطلع شهادة ميلاد</button><br>
-        🔹 خدمات تقدر تسأل عنها:<br>
-        التطعيمات - الوفاة - تنمية الأسرة - عن المساعد
-    `;
-}
-
-function quickSend(text) {
-    addMessage(text, "user");
-    showTyping();
-    setTimeout(() => {
-        removeTyping();
-        const matches = detectServices(text);
-        if (matches.length > 0) {
-            selectService(matches[0].name, text, false, false);
-        }
-    }, 1000);
-}
-
-function handleSend() {
-    const activeInput = assistantInputGroup.classList.contains("hidden") ? userInput : assistantUserInput;
-    const text = activeInput.value.trim();
-    if (!text) return;
-
-    addMessage(text, "user");
-    activeInput.value = "";
-
-    showTyping();
-    setTimeout(() => {
-        removeTyping();
-        const matches = detectServices(text);
-
-        if (matches.length > 1) {
-            let html = "لقيت أكتر من خدمة ممكن تكون مناسبة. اختار الخدمة المطلوبة:<br>";
-            matches.forEach(match => {
-                const service = serviceByName.get(match.name);
-                html += `<button class="option-btn" type="button" data-service="${match.name}">${service.icon} ${match.name}</button>`;
-            });
-            addMessage(html, "bot");
-        } else if (matches.length === 1) {
-            selectService(matches[0].name, text, false, false);
-        } else {
-            addMessage("ممكن توضح أكتر؟ ولو حابب، ارجع للخدمات الرئيسية واختار من الأزرار.", "bot", "notice-msg");
-        }
-    }, 1000);
+    const shortcuts = services.filter(service => service.main).slice(0, 8).map(service =>
+        `<button class="assistant-shortcut" type="button" data-quick-service="${service.name}"><span aria-hidden="true">${service.icon}</span>${service.name}</button>`
+    ).join("");
+    return `<div class="assistant-welcome"><strong>أهلاً بيك 🤍</strong><p>اختار اللي محتاجه، وأنا هساعدك خطوة بخطوة:</p><div class="assistant-shortcuts">${shortcuts}</div><button class="assistant-test-input" type="button" data-action="show-text-input">✍️ اكتب سؤالك بنفسك (للتجربة)</button></div>`;
 }
 
 function addMessage(text, type, extraClass = "", options = {}) {
     const div = document.createElement("div");
     div.className = `msg ${type === "user" ? "user-msg" : "bot-msg"} ${extraClass}`.trim();
-    div.innerHTML = text;
+    if (type === "user") div.textContent = text;
+    else div.innerHTML = text;
     if (options.audio) div.dataset.audio = options.audio;
 
     if (type === "bot") {
@@ -905,9 +981,9 @@ function getArabicVoice() {
 function setIntroAudioFabState(playing) {
     introAudioPlaying = playing;
     introAudioFab?.classList.toggle("is-playing", playing);
-    introAudioFab?.setAttribute("aria-label", playing ? "إيقاف رسالة الترحيب" : "سماع رسالة ترحيب");
+    introAudioFab?.setAttribute("aria-label", playing ? "إيقاف الشرح الصوتي" : "اسمعني أشرحلك");
     if (introAudioFabIcon) introAudioFabIcon.textContent = playing ? "■" : "🔊";
-    if (introAudioFabLabel) introAudioFabLabel.textContent = playing ? "إيقاف الرسالة" : "رسالة ترحيب";
+    if (introAudioFabLabel) introAudioFabLabel.textContent = playing ? "إيقاف الشرح" : "اسمعني أشرحلك";
 }
 
 function playIntroAudio() {
@@ -992,19 +1068,21 @@ function setStatText(element, value) {
 
 function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#071522" : "#1769d1");
     localStorage.setItem("healthAssistantTheme", theme);
     themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
     themeToggle.setAttribute("aria-label", theme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن");
 }
 
 function initTheme() {
-    const savedTheme = localStorage.getItem("healthAssistantTheme") || "light";
+    const savedTheme = localStorage.getItem("healthAssistantTheme") || "dark";
     applyTheme(savedTheme);
 }
 
 function finishSplash() {
-    splash.classList.add("is-hidden");
+    splash.classList.add("is-closing");
     readerApp.classList.remove("is-loading");
+    window.setTimeout(() => splash.classList.add("is-hidden"), 850);
     scheduleInstallPrompt();
 }
 
@@ -1024,6 +1102,8 @@ function initScrollMotion() {
         ".audience-stats",
         ".calm-separator",
         ".menu-panel",
+        ".service-btn",
+        ".smart-tool",
         ".gallery-divider",
         ".gallery-strip"
     ].join(","));
@@ -1039,9 +1119,8 @@ function initScrollMotion() {
 
     const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add("is-visible");
-            }
+            if (entry.isIntersecting) entry.target.classList.add("is-visible");
+            else if (entry.target.matches(".service-btn, .smart-tool")) entry.target.classList.remove("is-visible");
         });
     }, {
         rootMargin: "0px 0px -8% 0px",
@@ -1082,13 +1161,12 @@ function startTextAssistant() {
     enterAssistantMode();
     chatArea.innerHTML = "";
     aiConversation = [];
-    assistantInputGroup.classList.remove("hidden");
+    assistantInputGroup.classList.add("hidden");
 
     showTyping();
     setTimeout(() => {
         removeTyping();
         addMessage(getAssistantWelcome(), "bot", "notice-msg");
-        assistantUserInput.focus();
     }, 300);
 }
 
@@ -1112,14 +1190,22 @@ async function respondToUser(text) {
 
     try {
         const reply = await window.healthAssistantApi?.askAssistant(text, aiConversation);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         removeTyping();
         addPlainAssistantMessage(reply);
         aiConversation.push({ role: "user", content: text }, { role: "assistant", content: reply });
         aiConversation = aiConversation.slice(-10);
     } catch (error) {
         console.warn("AI assistant unavailable; using local service matching.", error);
-        removeTyping();
-        respondLocally(text);
+        if (detectServices(text).length === 1) {
+            removeTyping();
+            respondLocally(text);
+        } else {
+            setTimeout(() => {
+                removeTyping();
+                respondLocally(text);
+            }, 3000);
+        }
     }
 }
 
@@ -1143,7 +1229,15 @@ function respondLocally(text) {
 function addPlainAssistantMessage(text) {
     const div = document.createElement("div");
     div.className = "msg bot-msg ai-response";
-    div.textContent = text;
+    const responseText = document.createElement("span");
+    responseText.className = "ai-response-text";
+    responseText.setAttribute("aria-live", "off");
+    div.appendChild(responseText);
+
+    const caret = document.createElement("span");
+    caret.className = "typing-caret";
+    caret.setAttribute("aria-hidden", "true");
+    div.appendChild(caret);
 
     const actions = document.createElement("div");
     actions.className = "message-actions";
@@ -1154,9 +1248,24 @@ function addPlainAssistantMessage(text) {
     div.appendChild(actions);
     chatArea.appendChild(div);
     div.scrollIntoView({ behavior: "smooth", block: "end" });
+
+    const characters = Array.from(String(text ?? ""));
+    let position = 0;
+    const typeNext = () => {
+        if (!div.isConnected) return;
+        position = Math.min(position + 1, characters.length);
+        responseText.textContent = characters.slice(0, position).join("");
+        if (position < characters.length) {
+            window.setTimeout(typeNext, 24);
+        } else {
+            caret.remove();
+        }
+    };
+    typeNext();
 }
 
 document.getElementById("showSearchBtn").addEventListener("click", startTextAssistant);
+document.getElementById("heroAssistantBtn")?.addEventListener("click", startTextAssistant);
 document.getElementById("sendBtn").addEventListener("click", handleSend);
 assistantSendBtn.addEventListener("click", handleSend);
 assistantFab.addEventListener("click", startTextAssistant);
@@ -1256,6 +1365,26 @@ document.addEventListener("click", event => {
     if (event.target.closest("[data-tool-close]")) { closeAssistantTool(); return; }
     if (event.target.closest("[data-action='find-nearby']")) { findNearbyOffice(); return; }
     if (event.target.closest("[data-action='open-office-directory']")) { closeAssistantTool(); selectService("جميع مكاتب الصحة بالقاهرة"); return; }
+    const journeyButton = event.target.closest("[data-action='open-journey']");
+    if (journeyButton) { startJourney(journeyButton.dataset.journeyService); return; }
+    const resumeJourneyButton = event.target.closest("[data-action='resume-journey']");
+    if (resumeJourneyButton) { renderJourneyTool(resumeJourneyButton.dataset.journeyService); return; }
+    const quickService = event.target.closest("[data-quick-service]");
+    if (quickService) { selectService(quickService.dataset.quickService); return; }
+    if (event.target.closest("[data-action='show-text-input']")) { assistantInputGroup.classList.remove("hidden"); assistantUserInput.focus(); return; }
+    if (event.target.closest("[data-action='clear-journey']")) { clearJourney(); return; }
+    if (event.target.closest("[data-action='clear-local-data']")) { clearLocalHealthData(); return; }
+    const shareJourneyButton = event.target.closest("[data-action='share-journey']");
+    if (shareJourneyButton) {
+        const journeys = readJourneys();
+        const serviceName = shareJourneyButton.closest(".assistant-tool-content")?.querySelector("[data-journey-step]")?.dataset.journeyService;
+        const journey = journeys[serviceName];
+        const items = journey ? getJourneyItems(journey.service) : [];
+        const done = new Set(journey?.done || []);
+        shareText(`رحلة ${journey?.service || "الخدمة الصحية"}`, items.map((item, index) => `${done.has(index) ? "✓" : "□"} ${item}`).join("\n")).then(result => { shareJourneyButton.textContent = result; });
+        return;
+    }
+    if (event.target.closest("[data-action='print-checklist']")) { printAssistantTool(); return; }
     const documentService = event.target.closest("[data-doc-service]");
     if (documentService) { renderDocumentsTool(documentService.dataset.docService); return; }
     if (event.target.closest("[data-action='save-vaccine-date']")) { saveVaccineReminder(); return; }
@@ -1263,7 +1392,9 @@ document.addEventListener("click", event => {
     const shareChecklistButton = event.target.closest("[data-action='share-checklist']");
     if (shareChecklistButton) {
         const service = shareChecklistButton.dataset.checklistService;
-        shareText(`مستندات ${service}`, `المستندات الإرشادية لخدمة ${service}:\n- ${documentChecklists[service].join("\n- ")}`).then(result => { shareChecklistButton.textContent = result; });
+        const checked = readStoredJson(STORAGE_KEYS.documentChecklist, {})[service] || [];
+        const checklistText = documentChecklists[service].map((item, index) => `${checked[index] ? "✓" : "□"} ${item}`).join("\n");
+        shareText(`مستندات ${service}`, `المستندات الإرشادية لخدمة ${service}:\n${checklistText}`).then(result => { shareChecklistButton.textContent = result; });
         return;
     }
     const shareServiceButton = event.target.closest("[data-action='share-service']");
@@ -1368,6 +1499,28 @@ document.addEventListener("input", event => {
     if (event.target.id === "officeSearch") filterCairoHealthOffices(event.target.value);
 });
 
+document.addEventListener("change", event => {
+    const journeyInput = event.target.closest("[data-journey-step]");
+    if (journeyInput) { updateJourneyProgress(journeyInput); return; }
+    const vaccineHistory = event.target.closest("[name='vaccineHistory']");
+    if (vaccineHistory) {
+        const birthDate = localStorage.getItem(STORAGE_KEYS.vaccineBirthDate);
+        if (birthDate) {
+            const history = readStoredJson(STORAGE_KEYS.vaccineHistory, {});
+            history[birthDate] = vaccineHistory.value;
+            localStorage.setItem(STORAGE_KEYS.vaccineHistory, JSON.stringify(history));
+            renderVaccineReminder();
+        }
+        return;
+    }
+    const checklistInput = event.target.closest("[data-document-item]");
+    if (checklistInput) saveDocumentChecklist(checklistInput);
+});
+
+window.addEventListener("afterprint", () => document.body.classList.remove("print-assistant-tool"));
+window.addEventListener("online", renderPersonalAssistantStatus);
+window.addEventListener("offline", renderPersonalAssistantStatus);
+
 imageModal.addEventListener("click", event => {
     if (event.target === imageModal) closeImageModal();
 });
@@ -1406,7 +1559,32 @@ vaccineModal?.addEventListener("click", event => {
 });
 
 document.addEventListener("keydown", event => {
+    if (!imageModal.classList.contains("hidden")) {
+        if (event.ctrlKey && (event.key === "+" || event.key === "=" || event.key === "Add")) {
+            event.preventDefault();
+            changeZoom(0.25);
+            return;
+        }
+        if (event.ctrlKey && (event.key === "-" || event.key === "_" || event.key === "Subtract")) {
+            event.preventDefault();
+            changeZoom(-0.25);
+            return;
+        }
+        if (event.ctrlKey && event.key === "0") {
+            event.preventDefault();
+            imageScale = 1;
+            imageOffset = { x: 0, y: 0 };
+            updateModalImage();
+            return;
+        }
+        if (event.key === "ArrowLeft") { event.preventDefault(); openGalleryIndex(currentGalleryIndex + 1); return; }
+        if (event.key === "ArrowRight") { event.preventDefault(); openGalleryIndex(currentGalleryIndex - 1); return; }
+    }
     if (event.key !== "Escape") return;
+    if (!imageModal.classList.contains("hidden")) {
+        closeImageModal();
+        return;
+    }
     if (vaccineModal && !vaccineModal.classList.contains("hidden")) {
         closeVaccineModal();
         return;
@@ -1521,6 +1699,7 @@ galleryStrip.addEventListener("pointerleave", () => pauseGalleryAutoScroll());
 window.addEventListener("load", () => {
     initTheme();
     initSeniorMode();
+    initVoiceInput();
     renderMainMenu();
     renderPersonalAssistantStatus();
     renderTicker();
@@ -1531,5 +1710,5 @@ window.addEventListener("load", () => {
     setInterval(updateClock, 1000);
     setInterval(updateAudienceStats, 60 * 1000);
     registerServiceWorker();
-    setTimeout(finishSplash, 5000);
+    setTimeout(finishSplash, 4800);
 });
