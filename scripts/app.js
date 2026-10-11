@@ -3,6 +3,7 @@ const announcements = window.announcements || [];
 const fixedAnnouncements = window.fixedAnnouncements || [];
 const galleryItems = window.galleryItems || [];
 const cairoHealthOffices = window.cairoHealthOffices || [];
+const cairoHospitals = window.cairoHospitals || {};
 const vaccinationSchedule = window.vaccinationSchedule || [];
 
 const serviceByName = new Map(services.map(service => [service.name, service]));
@@ -27,7 +28,7 @@ const clockDate = document.getElementById("clockDate");
 const onlineNowCount = document.getElementById("onlineNowCount");
 const todayUsersCount = document.getElementById("todayUsersCount");
 const totalUsersCount = document.getElementById("totalUsersCount");
-const themeToggle = document.getElementById("themeToggle");
+const homeButton = document.getElementById("homeButton");
 const seniorModeToggle = document.getElementById("seniorModeToggle");
 const imageModal = document.getElementById("imageModal");
 const modalImage = document.getElementById("modalImage");
@@ -56,6 +57,7 @@ const personalAssistantStatus = document.getElementById("personalAssistantStatus
 const voiceInputButtons = [...document.querySelectorAll("[data-voice-input]")];
 
 let imageScale = 1;
+let imageRotation = 0;
 let imageOffset = { x: 0, y: 0 };
 let imageDrag = null;
 let imageSwipe = null;
@@ -68,6 +70,8 @@ let galleryPausedUntil = 0;
 let tickerAutoFrame = null;
 let deferredInstallPrompt = null;
 let currentAudio = null;
+let currentAudioTarget = null;
+let currentSpeechTarget = null;
 let assistantHistoryActive = false;
 let imageHistoryActive = false;
 let ignoreNextPopState = false;
@@ -185,12 +189,13 @@ function pauseGalleryAutoScroll(delay = 3000) {
 }
 
 function renderHospitalsIntro() {
+    const areaButtons = cairoHealthOffices.map(({ area }) =>
+        `<button class="option-btn area-choice" type="button" data-medical-area="${area}">${area}</button>`
+    ).join("");
     return `
-        <span class="response-title">📍 المناطق الطبية التابعة لمديرية الشئون الصحية بالقاهرة</span>
-        اختار المنطقة الطبية المطلوبة، والمساعد هيعرض لك مكاتب الصحة والمستشفيات التابعة لمكاتب الصحة بشكل واضح.<br><br>
-        <button class="option-btn area-choice" type="button" data-medical-area="waily">
-            منطقة الوايلي الطبية
-        </button>
+        <span class="response-title">📍 مستشفيات وجهات علاجية حسب المنطقة</span>
+        اختار منطقتك لعرض الجهات المتاحة في الدليل. البيانات المنشورة لا تعني بالضرورة تبعية المستشفى لمكتب صحة بعينه.<br><br>
+        <div class="hospital-area-grid">${areaButtons}</div>
     `;
 }
 
@@ -265,14 +270,17 @@ function openOfficeModal(office) {
     officeModalAddress.textContent = office.address;
     officeModalMap.href = getOfficeMapUrl(office);
     updateOfficeFavoriteButton();
+    if (officeModal.classList.contains("hidden")) history.pushState({ appModal: "office" }, "", location.href);
     officeModal.classList.remove("hidden");
     document.body.classList.add("office-modal-open");
     officeModal.querySelector(".office-modal-close")?.focus();
 }
 
-function closeOfficeModal() {
+function closeOfficeModal(fromHistory = false) {
+    const wasOpen = officeModal && !officeModal.classList.contains("hidden");
     officeModal?.classList.add("hidden");
     document.body.classList.remove("office-modal-open");
+    if (wasOpen && !fromHistory) { ignoreNextPopState = true; history.back(); }
 }
 
 function readStoredJson(key, fallback) { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
@@ -331,8 +339,8 @@ function renderPersonalAssistantStatus() {
     if (!navigator.onLine) parts.push('<span class="offline-status" role="status">أنت غير متصل؛ الخدمات الأساسية المحفوظة متاحة، وقد تحتاج الروابط الخارجية للإنترنت.</span>');
     personalAssistantStatus.innerHTML = parts.join(""); personalAssistantStatus.classList.toggle("hidden", !parts.length);
 }
-function openAssistantTool(content) { if (!assistantToolModal || !assistantToolContent) return; assistantToolContent.innerHTML = content; assistantToolModal.classList.remove("hidden"); document.body.classList.add("assistant-tool-open"); assistantToolModal.querySelector("button, input")?.focus(); }
-function closeAssistantTool() { assistantToolModal?.classList.add("hidden"); document.body.classList.remove("assistant-tool-open"); }
+function openAssistantTool(content) { if (!assistantToolModal || !assistantToolContent) return; if (assistantToolModal.classList.contains("hidden")) history.pushState({ appModal: "assistantTool" }, "", location.href); assistantToolContent.innerHTML = content; assistantToolModal.classList.remove("hidden"); document.body.classList.add("assistant-tool-open"); assistantToolModal.querySelector("button, input")?.focus(); }
+function closeAssistantTool(fromHistory = false) { const wasOpen = assistantToolModal && !assistantToolModal.classList.contains("hidden"); assistantToolModal?.classList.add("hidden"); document.body.classList.remove("assistant-tool-open"); if (wasOpen && !fromHistory) { ignoreNextPopState = true; history.back(); } }
 function getJourneyItems(serviceName) {
     const documents = documentChecklists[serviceName] || [];
     return [
@@ -517,62 +525,35 @@ function openVaccineModal(group) {
             </div>
         </details>
     `).join("");
+    if (vaccineModal.classList.contains("hidden")) history.pushState({ appModal: "vaccine" }, "", location.href);
     vaccineModal.classList.remove("hidden");
     document.body.classList.add("vaccine-modal-open");
     vaccineModal.querySelector(".vaccine-modal-back")?.focus();
 }
 
-function closeVaccineModal() {
+function closeVaccineModal(fromHistory = false) {
+    const wasOpen = vaccineModal && !vaccineModal.classList.contains("hidden");
     vaccineModal?.classList.add("hidden");
     document.body.classList.remove("vaccine-modal-open");
+    if (wasOpen && !fromHistory) { ignoreNextPopState = true; history.back(); }
 }
 
 function renderWailyHospitals() {
-    return `
-        <span class="response-title">منطقة الوايلي الطبية</span>
-
-        <div class="hospital-office">
-            <h3>صحة الدمرداش</h3>
-            <p>المستشفيات التابعة لمكتب صحة الدمرداش</p>
-            ${renderHospitalList([
-                ["مستشفى الدمرداش", "56 شارع رمسيس، حي العباسية، القاهرة"],
-                ["مستشفى دار الشفاء", "375 شارع رمسيس، العباسية، القاهرة"],
-                ["مستشفى واحة الطب", "19 شارع مصر والسودان، امتداد أحمد سعيد، حدائق القبة، القاهرة"]
-            ])}
-        </div>
-
-        <div class="hospital-office">
-            <h3>صحة العباسية</h3>
-            <p>المستشفيات التابعة لمكتب صحة العباسية</p>
-            ${renderHospitalList([
-                ["مستشفى عين شمس التخصصى", "2 شارع الخليفة المأمون، العباسية، بجوار كلية التجارة عين شمس"],
-                ["مستشفى الزهراء الجامعى", "شارع المستشفى اليوناني، السرايات، الوايلي، القاهرة"],
-                ["مستشفى الايطالى", "17 شارع السرايات، العباسية، القاهرة"],
-                ["مستشفى اليونانى", "أحمد فؤاد عبد العزيز، السرايات، الوايلي، القاهرة"],
-                ["مستشفى اركان التخصصى", "126 أمام محطة مترو العباسية، القاهرة"],
-                ["مستشفى الجوى العام", "شارع أحمد سعيد، العباسية، الوايلي، القاهرة"]
-            ])}
-        </div>
-
-        <div class="hospital-office">
-            <h3>صحة الظاهر</h3>
-            <p>المستشفيات التابعة لمكتب صحة الظاهر</p>
-            ${renderHospitalList([
-                ["مستشفى السلام التخصصى", "أبو خودة، حي الظاهر، مدينة السلام، القاهرة"],
-                ["مستشفى النزهة", "2 النزهة، السكاكيني، حي الظاهر، القاهرة"],
-                ["مستشفى الأمل", "10 ركن الريس، القبيسي، حي الظاهر، القاهرة"]
-            ])}
-        </div>
-    `;
+    const area = window.selectedHospitalArea || "الوايلي";
+    const hospitals = cairoHospitals[area] || [];
+    return `<span class="response-title">📍 ${area}</span>
+        ${hospitals.length ? `<div class="hospital-scope-note">بيانات منشورة من أدلة وزارة الصحة، والمستشفى ليس بالضرورة تابعًا إداريًا لمكتب صحة المنطقة.</div>${renderHospitalList(hospitals)}<div class="hospital-source-links"><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=63" target="_blank" rel="noopener noreferrer">دليل المستشفيات العامة</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=61" target="_blank" rel="noopener noreferrer">دليل المستشفيات التخصصية</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=59" target="_blank" rel="noopener noreferrer">دليل المستشفيات التعليمية</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=66" target="_blank" rel="noopener noreferrer">دليل مستشفيات الحميات</a></div>` : `<div class="hospital-update-note"><strong>تحديث بيانات المنطقة</strong><span>لم تتوفر لدينا حاليًا بيانات مستشفيات موثقة لهذه المنطقة. سنضيفها بعد مراجعة مصدر رسمي.</span></div>`}`;
 }
 
 function renderHospitalList(items) {
     return `
         <div class="hospital-list">
-            ${items.map(([name, address]) => `
+            ${items.map(({ name, address, phone, category, source }) => `
                 <article class="hospital-item">
-                    <strong>${name}</strong>
-                    <span>${address}</span>
+                    <div class="hospital-item-heading"><span aria-hidden="true">🏥</span><div><strong>${name}</strong><small>${category} · ${source}</small></div></div>
+                    <div class="hospital-detail-field"><small>العنوان</small><span>${address}</span></div>
+                    ${phone ? `<div class="hospital-detail-field"><small>التواصل</small><a href="tel:${phone.split(/[–-]/)[0].replace(/[^0-9+]/g, "")}">${phone}</a></div>` : ""}
+                    <a class="office-map-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${address}`)}" target="_blank" rel="noopener noreferrer">فتح الموقع الجغرافي <span aria-hidden="true">📍</span></a>
                 </article>
             `).join("")}
         </div>
@@ -625,12 +606,13 @@ function renderEmergencyGuide() {
 }
 
 function updateModalImage() {
-    modalImage.style.transform = `translate(${imageOffset.x}px, ${imageOffset.y}px) scale(${imageScale})`;
+    modalImage.style.transform = `translate(${imageOffset.x}px, ${imageOffset.y}px) rotate(${imageRotation}deg) scale(${imageScale})`;
 }
 
 function openImageModal(source, title, alt, index = 0) {
     currentGalleryIndex = index;
     imageScale = 1;
+    imageRotation = 0;
     imageOffset = { x: 0, y: 0 };
     imageSwipe = null;
     modalPointers.clear();
@@ -782,6 +764,22 @@ function backToServices(fromHistory = false) {
     }
 }
 
+function navigateHome() {
+    let historySteps = 0;
+    if (assistantToolModal && !assistantToolModal.classList.contains("hidden")) { closeAssistantTool(true); historySteps++; }
+    if (vaccineModal && !vaccineModal.classList.contains("hidden")) { closeVaccineModal(true); historySteps++; }
+    if (officeModal && !officeModal.classList.contains("hidden")) { closeOfficeModal(true); historySteps++; }
+    if (!imageModal.classList.contains("hidden")) { closeImageModal(true); historySteps++; }
+    if (document.body.classList.contains("assistant-open")) {
+        const hadAssistantHistory = assistantHistoryActive;
+        backToServices(true);
+        if (hadAssistantHistory) historySteps++;
+        assistantHistoryActive = false;
+    }
+    if (historySteps) history.go(-historySteps);
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function selectService(serviceName, originalText = "", addUserChoice = true, resetChat = true) {
     const service = serviceByName.get(serviceName);
     if (!service) return;
@@ -810,7 +808,8 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
 
         if (service.customView === "emergency") {
             addMessage(renderEmergencyGuide(), "bot", "service-response response-emergency", {
-                audio: service.media?.audio || ""
+                audio: service.media?.audio || "",
+                typewriter: true
             });
             return;
         }
@@ -829,7 +828,8 @@ function selectService(serviceName, originalText = "", addUserChoice = true, res
         response += `<button class="journey-start-button" type="button" data-action="open-journey" data-journey-service="${service.name}">🧭 ابدأ رحلتك خطوة بخطوة</button><div class="service-utility-actions"><button type="button" data-action="share-service" data-service-name="${service.name}">↗ مشاركة الخدمة</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="yes">✓ أفادني</button><button type="button" data-action="service-feedback" data-service-name="${service.name}" data-helpful="no">أحتاج توضيحًا</button></div>`;
 
         addMessage(response, "bot", `service-response ${service.special ? `response-${service.special}` : ""}`, {
-            audio: service.media?.audio || ""
+            audio: service.media?.audio || "",
+            typewriter: true
         });
     }, 4100);
 }
@@ -859,7 +859,36 @@ function addMessage(text, type, extraClass = "", options = {}) {
     }
 
     chatArea.appendChild(div);
+    if (options.typewriter) typeMessageContent(div);
     div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function typeMessageContent(message) {
+    const walker = document.createTreeWalker(message, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) { return node.parentElement?.closest(".message-actions") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+    });
+    const entries = [];
+    let totalCharacters = 0;
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const characters = Array.from(node.nodeValue || "");
+        if (!characters.length) continue;
+        entries.push({ node, characters });
+        totalCharacters += characters.length;
+        node.nodeValue = "";
+    }
+    if (!totalCharacters) return;
+    const delay = Math.max(7, Math.min(24, 4800 / totalCharacters));
+    let entryIndex = 0;
+    let characterIndex = 0;
+    const typeNext = () => {
+        if (!message.isConnected) return;
+        const entry = entries[entryIndex];
+        entry.node.nodeValue += entry.characters[characterIndex++];
+        if (characterIndex >= entry.characters.length) { entryIndex++; characterIndex = 0; }
+        if (entryIndex < entries.length) window.setTimeout(typeNext, delay);
+    };
+    typeNext();
 }
 
 function showTyping() {
@@ -905,6 +934,7 @@ async function copyMessage(message) {
 function speakMessage(message) {
     const audioSrc = message.dataset.audio;
     if (audioSrc) {
+        if (currentAudioTarget === message && currentAudio && !currentAudio.paused) { stopCurrentAudio(); return; }
         playAudioFile(audioSrc, message);
         return;
     }
@@ -921,7 +951,8 @@ function speakMessage(message) {
         showTinyFeedback(message, "لا يوجد نص للقراءة");
         return;
     }
-    window.speechSynthesis.cancel();
+    if (currentSpeechTarget === message && window.speechSynthesis.speaking) { stopCurrentAudio(); return; }
+    stopCurrentAudio();
 
     const utterance = new SpeechSynthesisUtterance(text);
     const egyptianVoice = getArabicVoice();
@@ -929,6 +960,10 @@ function speakMessage(message) {
     else showTinyFeedback(message, "ثبّت صوت عربي من إعدادات ويندوز");
     utterance.lang = egyptianVoice?.lang || "ar-EG";
     utterance.rate = 0.9;
+    currentSpeechTarget = message;
+    setSpeakButtonState(message, true);
+    utterance.onend = () => { currentSpeechTarget = null; setSpeakButtonState(message, false); };
+    utterance.onerror = () => { currentSpeechTarget = null; setSpeakButtonState(message, false); };
     window.speechSynthesis.speak(utterance);
     showTinyFeedback(message, "جاري القراءة");
 }
@@ -937,13 +972,19 @@ function playAudioFile(source, feedbackTarget = null) {
     stopCurrentAudio();
 
     currentAudio = new Audio(source);
+    currentAudioTarget = feedbackTarget;
+    if (feedbackTarget) setSpeakButtonState(feedbackTarget, true);
     currentAudio.preload = "auto";
     currentAudio.onended = () => {
         currentAudio = null;
+        currentAudioTarget = null;
+        if (feedbackTarget) setSpeakButtonState(feedbackTarget, false);
     };
     currentAudio.onerror = () => {
         if (feedbackTarget) showTinyFeedback(feedbackTarget, "تعذر تشغيل الصوت");
         currentAudio = null;
+        currentAudioTarget = null;
+        if (feedbackTarget) setSpeakButtonState(feedbackTarget, false);
     };
 
     const playPromise = currentAudio.play();
@@ -961,13 +1002,27 @@ function playAudioFile(source, feedbackTarget = null) {
 }
 
 function stopCurrentAudio() {
+    const previousAudioTarget = currentAudioTarget;
+    const previousSpeechTarget = currentSpeechTarget;
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
     }
+    currentAudioTarget = null;
+    currentSpeechTarget = null;
+    if (previousAudioTarget) setSpeakButtonState(previousAudioTarget, false);
+    if (previousSpeechTarget) setSpeakButtonState(previousSpeechTarget, false);
     if (introAudioPlaying) setIntroAudioFabState(false);
     window.speechSynthesis?.cancel();
+}
+
+function setSpeakButtonState(message, isPlaying) {
+    const button = message?.querySelector(".speak-action");
+    if (!button) return;
+    button.textContent = isPlaying ? "■" : "🔊";
+    button.setAttribute("aria-label", isPlaying ? "إيقاف الرد الصوتي" : "سماع الرد");
+    button.classList.toggle("is-playing", isPlaying);
 }
 
 function getArabicVoice() {
@@ -1070,8 +1125,6 @@ function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#071522" : "#1769d1");
     localStorage.setItem("healthAssistantTheme", theme);
-    themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
-    themeToggle.setAttribute("aria-label", theme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن");
 }
 
 function initTheme() {
@@ -1307,6 +1360,9 @@ window.addEventListener("popstate", () => {
         closeImageModal(true);
         return;
     }
+    if (vaccineModal && !vaccineModal.classList.contains("hidden")) { closeVaccineModal(true); return; }
+    if (officeModal && !officeModal.classList.contains("hidden")) { closeOfficeModal(true); return; }
+    if (assistantToolModal && !assistantToolModal.classList.contains("hidden")) { closeAssistantTool(true); return; }
 
     if (document.body.classList.contains("assistant-open")) {
         backToServices(true);
@@ -1332,10 +1388,7 @@ installLaterBtn?.addEventListener("click", () => {
 
 introAudioFab?.addEventListener("click", playIntroAudio);
 
-themeToggle.addEventListener("click", () => {
-    const current = document.documentElement.dataset.theme || "light";
-    applyTheme(current === "dark" ? "light" : "dark");
-});
+homeButton.addEventListener("click", navigateHome);
 
 seniorModeToggle?.addEventListener("click", () => {
     const next = !document.documentElement.classList.contains("senior-mode");
@@ -1455,6 +1508,7 @@ document.addEventListener("click", event => {
     const medicalAreaButton = event.target.closest("[data-medical-area]");
     if (medicalAreaButton) {
         addMessage(medicalAreaButton.textContent.trim(), "user");
+        window.selectedHospitalArea = medicalAreaButton.dataset.medicalArea;
         showTyping();
         setTimeout(() => {
             removeTyping();
@@ -1478,7 +1532,6 @@ document.addEventListener("click", event => {
         speakMessage(message);
         return;
     }
-
     const imageTool = event.target.closest("[data-image-tool]");
     if (imageTool) {
         const tool = imageTool.dataset.imageTool;
@@ -1486,9 +1539,12 @@ document.addEventListener("click", event => {
         if (tool === "zoom-out") changeZoom(-0.25);
         if (tool === "reset") {
             imageScale = 1;
+            imageRotation = 0;
             imageOffset = { x: 0, y: 0 };
             updateModalImage();
         }
+        if (tool === "rotate-left") { imageRotation -= 90; updateModalImage(); }
+        if (tool === "rotate-right") { imageRotation += 90; updateModalImage(); }
         if (tool === "previous") openGalleryIndex(currentGalleryIndex - 1);
         if (tool === "next") openGalleryIndex(currentGalleryIndex + 1);
         if (tool === "close") closeImageModal();
@@ -1709,6 +1765,57 @@ window.addEventListener("load", () => {
     updateAudienceStats();
     setInterval(updateClock, 1000);
     setInterval(updateAudienceStats, 60 * 1000);
+    const heroServiceText = document.getElementById("heroServiceText");
+    const heroServiceDescription = document.getElementById("heroServiceDescription");
+    const spotlightServices = [
+        { title: "تسجيل المواليد", description: "جهّز إخطار الولادة وبطاقتي الأب والأم وقسيمة الزواج وصور المستندات." },
+        { title: "قبل ما تروح تسجل مولودك", description: "راجع أصول الأوراق وصورها؛ تجهيزها من البداية يساعدك تخلّص الإجراءات بسهولة." },
+        { title: "تسجيل الوفيات", description: "جهّز إخطار الوفاة ومستند هوية المتوفى وبطاقة المُبلّغ قبل التوجه للمكتب." },
+        { title: "استلام شهادة الوفاة", description: "اسأل عن المستندات المطلوبة لإثبات صلة القرابة عند استلام الشهادة الأصلية." },
+        { title: "تطعيمات طفلك", description: "خلي بطاقة التطعيم معاك واسأل مكتب الصحة عن مواعيد الجرعات المتاحة." },
+        { title: "حافظ على جرعات طفلك", description: "تسجيل الجرعات في بطاقة التطعيم بيسهّل عليك متابعة الجرعات اللي فاتت والجاية." },
+        { title: "بطاقة التطعيم ضاعت؟", description: "اسأل مكتب الصحة عن المستندات البديلة وخطوات استكمال سجل التطعيمات." },
+        { title: "فحص الغدة لحديثي الولادة", description: "اسأل مكتبك عن ميعاد سحب العينة قبل ما تروح؛ المواعيد قد تختلف في التطبيق العملي." },
+        { title: "تنظيم الأسرة", description: "استشارة طبية تساعدك تختار الوسيلة الأنسب لحالتك وتتابع استخدامها بأمان." },
+        { title: "خصوصيتك مهمة", description: "خدمات تنظيم الأسرة بتُقدَّم بسرية واحترام، والاختيار يكون مع الطبيبة المختصة." },
+        { title: "وسائل تنظيم الأسرة", description: "اسأل الطبيبة عن الوسائل المتاحة ومميزاتها ومواعيد المتابعة المناسبة ليك." },
+        { title: "متابعة صحة الأم", description: "مراكز الرعاية بتقدم متابعة للأم بعد الولادة وتوعية صحية عن التغذية والرضاعة." },
+        { title: "رعاية الطفل", description: "اسأل مركز الرعاية عن خدمات متابعة الطفل والتطعيمات المتوفرة في منطقتك." },
+        { title: "رسوم الخدمات", description: "الرسوم بتختلف حسب نوع الخدمة؛ اتأكد من المكتب المختص قبل التوجه." },
+        { title: "التأمين الصحي", description: "جهّز بطاقة الرقم القومي واسأل فرع التأمين عن الإجراء المناسب لخدمتك." },
+        { title: "أقرب مكتب صحة", description: "اختار منطقتك من الدليل عشان تشوف عناوين المكاتب وموقعها على الخريطة." },
+        { title: "خدمات مكاتب الصحة", description: "المواليد والوفيات والتطعيمات وتنظيم الأسرة؛ اختار الخدمة وشوف المطلوب خطوة بخطوة." },
+        { title: "قبل زيارة المكتب", description: "راجع العنوان والمستندات، واسأل عن المواعيد لتوفّر وقتك ومجهودك." },
+        { title: "مش متأكد من الورق؟", description: "افتح الخدمة المطلوبة، وهتلاقي قائمة مختصرة تساعدك تجهّز قبل الزيارة." },
+        { title: "مراكز الرعاية الصحية", description: "اعرف أقرب مركز من دليل المنطقة، واستفسر منه عن الخدمة والرسوم المتاحة." },
+        { title: "جرعة فائتة؟", description: "ما تبدأش جدول من نفسك؛ خُد بطاقة التطعيم للمكتب عشان يراجع الجرعات ويحدد الخطوة." },
+        { title: "خدمة أوضح وأسهل", description: "المساعد بيرتب لك الخطوات والعناوين، والقرار النهائي حسب تعليمات المكتب المختص." }
+    ];
+    let spotlightQueue = [];
+    let previousSpotlight = null;
+    const showNextSpotlight = () => {
+        if (!heroServiceText || !heroServiceDescription) return;
+        if (!spotlightQueue.length) {
+            spotlightQueue = [...spotlightServices];
+            for (let index = spotlightQueue.length - 1; index > 0; index--) {
+                const randomIndex = Math.floor(Math.random() * (index + 1));
+                [spotlightQueue[index], spotlightQueue[randomIndex]] = [spotlightQueue[randomIndex], spotlightQueue[index]];
+            }
+            if (previousSpotlight && spotlightQueue[0] === previousSpotlight) spotlightQueue.push(spotlightQueue.shift());
+        }
+        const nextSpotlight = spotlightQueue.shift();
+        heroServiceText.parentElement.classList.add("is-changing");
+        setTimeout(() => {
+            heroServiceText.textContent = nextSpotlight.title;
+            heroServiceDescription.textContent = nextSpotlight.description;
+            previousSpotlight = nextSpotlight;
+            heroServiceText.parentElement.classList.remove("is-changing");
+            const readingTime = Math.min(14000, Math.max(8500, 5000 + nextSpotlight.description.length * 65));
+            setTimeout(showNextSpotlight, readingTime);
+        }, 800);
+    };
+    setTimeout(showNextSpotlight, 9500);
+    if (!history.state?.healthAssistantBase) history.pushState({ healthAssistantBase: true }, "", location.href);
     registerServiceWorker();
     setTimeout(finishSplash, 4800);
 });
