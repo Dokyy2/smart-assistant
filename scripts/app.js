@@ -45,6 +45,13 @@ const installLaterBtn = document.getElementById("installLaterBtn");
 const introAudioFab = document.getElementById("introAudioFab");
 const introAudioFabIcon = introAudioFab?.querySelector(".intro-audio-fab-icon");
 const introAudioFabLabel = introAudioFab?.querySelector(".intro-audio-fab-label");
+const pageFooter = document.querySelector(".footer");
+if (pageFooter && "IntersectionObserver" in window) {
+    const footerVisibilityObserver = new IntersectionObserver(([entry]) => {
+        document.body.classList.toggle("page-footer-visible", entry.isIntersecting);
+    }, { threshold: 0, rootMargin: "0px 0px -24px 0px" });
+    footerVisibilityObserver.observe(pageFooter);
+}
 const officeModal = document.getElementById("officeModal");
 const officeModalName = document.getElementById("officeModalName");
 const officeModalArea = document.getElementById("officeModalArea");
@@ -262,13 +269,46 @@ function pauseGalleryAutoScroll(delay = 3000) {
 
 function renderHospitalsIntro() {
     const areaButtons = cairoHealthOffices.map(({ area }, index) =>
-        `<button class="option-btn area-choice" type="button" data-medical-area="${area}" style="--reveal-delay:${index * 34}ms">${area}</button>`
+        `<button class="option-btn area-choice" type="button" data-medical-area="${escapeHtml(area)}" data-hospital-area-choice="${escapeHtml(area)}" style="--reveal-delay:${index * 34}ms">${escapeHtml(area)}</button>`
     ).join("");
+    const areaCount = cairoHealthOffices.length;
+    const hospitalCount = Object.values(cairoHospitals).reduce((total, hospitals) => total + hospitals.length, 0);
     return `
         <span class="response-title">📍 مستشفيات وجهات علاجية حسب المنطقة</span>
-        اختار منطقتك لعرض الجهات المتاحة في الدليل. البيانات المنشورة لا تعني بالضرورة تبعية المستشفى لمكتب صحة بعينه.<br><br>
+        <p class="office-directory-intro">اكتب اسم مستشفى أو منطقة، أو افتح المنطقة لعرض الجهات المتاحة. البيانات المنشورة لا تعني بالضرورة تبعية المستشفى لمكتب صحة بعينه.</p>
+        <label class="office-search-label" for="hospitalSearch">ابحث عن مستشفى أو منطقة</label>
+        <input id="hospitalSearch" class="office-search-input" type="search" placeholder="مثال: مستشفى دار الشفاء أو الوايلي" autocomplete="off">
+        <p id="hospitalSearchStatus" class="office-search-status">${areaCount} منطقة · ${hospitalCount} جهة علاجية في الدليل</p>
         <div class="hospital-area-grid">${areaButtons}</div>
     `;
+}
+
+function filterHospitalsBySearch(query) {
+    const normalizedQuery = normalize(query);
+    let visibleAreaCount = 0;
+    let matchingHospitalCount = 0;
+
+    document.querySelectorAll("[data-hospital-area-choice]").forEach(button => {
+        const area = button.dataset.hospitalAreaChoice;
+        const hospitals = cairoHospitals[area] || [];
+        const areaMatches = normalize(area).includes(normalizedQuery);
+        const matchingHospitals = hospitals.filter(hospital => normalize(`${hospital.name} ${hospital.address} ${hospital.category || ""}`).includes(normalizedQuery));
+        const isMatch = !normalizedQuery || areaMatches || matchingHospitals.length > 0;
+        button.classList.toggle("hidden", !isMatch);
+        if (isMatch) {
+            visibleAreaCount++;
+            matchingHospitalCount += normalizedQuery && !areaMatches ? matchingHospitals.length : hospitals.length;
+        }
+    });
+
+    const status = document.getElementById("hospitalSearchStatus");
+    if (status) {
+        status.textContent = normalizedQuery
+            ? visibleAreaCount
+                ? `${visibleAreaCount} منطقة · ${matchingHospitalCount} جهة مطابقة`
+                : "مفيش نتيجة مطابقة؛ جرّب اسم مستشفى أو منطقة تانية."
+            : `${visibleAreaCount} منطقة · ${Object.values(cairoHospitals).reduce((total, hospitals) => total + hospitals.length, 0)} جهة علاجية في الدليل`;
+    }
 }
 
 function renderCairoHealthOffices() {
@@ -1665,6 +1705,7 @@ document.addEventListener("click", event => {
 
 document.addEventListener("input", event => {
     if (event.target.id === "officeSearch") filterCairoHealthOffices(event.target.value);
+    if (event.target.id === "hospitalSearch") filterHospitalsBySearch(event.target.value);
     if (event.target === globalServiceSearch) {
         if (globalServiceSearch.value.trim()) showGlobalSearchResults(globalServiceSearch.value);
         else { hideGlobalSearchResults(); globalSearchClear.classList.add("hidden"); }

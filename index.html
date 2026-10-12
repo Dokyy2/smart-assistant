@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="styles/main.css?v=20261012-10">
-    <link rel="stylesheet" href="styles/visual-overrides.css?v=20261012-3">
+    <link rel="stylesheet" href="styles/visual-overrides.css?v=20261012-6">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
@@ -98,11 +98,12 @@
             <section class="global-search" aria-label="البحث في خدمات الموقع">
                 <div class="global-search-heading-block">
                     <h2>ابحث عن خدمة</h2>
-                    <p>اكتب اسم الخدمة أو جزءًا منه، وهتظهرلك الاختيارات المناسبة.</p>
+                    <p>اكتب أي كلمة أو جزء منها، وهتظهرلك النتائج من كل الموقع.</p>
                 </div>
+                <p class="global-search-guidance"><strong>💡 إرشاد</strong><span>اكتب كلمة أو جزءًا منها، مثل: تأمين صحي، غدة درقية، مستشفى، تطعيمات.</span></p>
                 <label class="global-search-label" for="globalServiceSearch">البحث عن خدمة أو إجراء</label>
                 <div class="global-search-box">
-                    <input id="globalServiceSearch" type="search" autocomplete="off" placeholder="مثال: تسجيل مولود أو تطعيمات">
+                    <input id="globalServiceSearch" type="search" autocomplete="off" placeholder="اكتب كلمة للبحث في الموقع">
                     <button id="globalSearchClear" class="global-search-clear hidden" type="button" aria-label="مسح البحث">×</button>
                 </div>
                 <div id="globalSearchResults" class="global-search-results hidden" aria-live="polite"></div>
@@ -295,6 +296,6 @@
     <script src="data/gallery.js?v=20260625-1"></script>
     <script src="data/ai-config.js?v=20260731-1"></script>
     <script src="scripts/ai-api.js?v=20260731-1"></script>
-    <script src="scripts/app.js?v=20261012-12"></script>
+    <script src="scripts/app.js?v=20261012-13"></script>
 </body>
 </html>
