@@ -528,3 +528,43 @@ body.page-footer-visible .intro-audio-fab {
     pointer-events: none;
     transform: translateY(14px);
 }
+
+.install-card.is-installed {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(73, 208, 166, 0.72);
+    background: radial-gradient(circle at 50% 0%, rgba(96, 231, 177, 0.2), transparent 58%), var(--surface);
+}
+
+.install-card.is-installed::before {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 12% 22%, #ffd166 0 3px, transparent 4px),
+        radial-gradient(circle at 24% 12%, #ff6b8a 0 2px, transparent 3px),
+        radial-gradient(circle at 80% 17%, #66d9c2 0 3px, transparent 4px),
+        radial-gradient(circle at 91% 31%, #80aaff 0 2px, transparent 3px),
+        radial-gradient(circle at 16% 73%, #a88bff 0 2px, transparent 3px),
+        radial-gradient(circle at 87% 78%, #ffd166 0 3px, transparent 4px),
+        radial-gradient(circle at 72% 8%, #ff8fab 0 2px, transparent 3px);
+    content: "";
+    pointer-events: none;
+    animation: installConfetti 1.15s ease-out both;
+}
+
+.install-card.is-installed .install-icon {
+    position: relative;
+    z-index: 1;
+    color: #126d5a;
+    background: linear-gradient(145deg, #d8fff0, #a9f2d8);
+    box-shadow: 0 0 0 6px rgba(100, 232, 182, 0.14), 0 0 30px rgba(83, 226, 171, 0.52);
+    animation: installCelebrate 1.1s cubic-bezier(0.2, 0.8, 0.25, 1.2) both;
+}
+
+@keyframes installConfetti { from { opacity: 0; transform: translateY(-12px) scale(0.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes installCelebrate { 0% { transform: scale(0.65) rotate(-16deg); } 65% { transform: scale(1.14) rotate(7deg); } 100% { transform: scale(1) rotate(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .install-card.is-installed::before,
+    .install-card.is-installed .install-icon { animation: none; }
+}

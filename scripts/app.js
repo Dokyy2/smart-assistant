@@ -41,6 +41,8 @@ const modalImage = document.getElementById("modalImage");
 const modalImageTitle = document.getElementById("modalImageTitle");
 const imageStage = document.getElementById("imageStage");
 const installPrompt = document.getElementById("installPrompt");
+const installCard = installPrompt?.querySelector(".install-card");
+const installPromptIcon = document.getElementById("installPromptIcon");
 const installPromptTitle = document.getElementById("installPromptTitle");
 const installPromptDescription = document.getElementById("installPromptDescription");
 const installNowBtn = document.getElementById("installNowBtn");
@@ -104,6 +106,7 @@ const INTRO_AUDIO_SRC = "assets/audio/00 المقدمة.mp3";
 const STATS_START_DATE = new Date("2026-06-20T00:00:00");
 const STATS_STEP_MS = 60 * 60 * 1000;
 const STATS_STEP_VALUE = 3;
+const INSTALL_CONFIRMED_KEY = "healthAssistantAppInstalled";
 const arabicNumberFormatter = new Intl.NumberFormat("ar-EG");
 const STORAGE_KEYS = {
     favoriteOffice: "healthAssistantFavoriteOffice",
@@ -1322,7 +1325,35 @@ function initScrollMotion() {
 }
 
 function isAppInstalled() {
-    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    try {
+        return isStandalone || localStorage.getItem(INSTALL_CONFIRMED_KEY) === "true";
+    } catch {
+        return isStandalone;
+    }
+}
+
+function markInstallButtonAsInstalled() {
+    const copy = installAppButton?.querySelector(".app-install-copy");
+    if (!copy) return;
+    copy.querySelector("small").textContent = "🎉 موجود على جهازك";
+    copy.querySelector("strong").textContent = "المساعد اتضاف للتطبيقات";
+    copy.querySelector("span").textContent = "اضغط للاحتفال";
+    installAppButton.setAttribute("aria-label", "المساعد موجود بالفعل على الجهاز");
+}
+
+function showInstallSuccess() {
+    if (installPrompt?.dataset.state === "installed" && !installPrompt.classList.contains("hidden")) return;
+    installPrompt.dataset.state = "installed";
+    installCard?.classList.remove("is-installed");
+    installPromptIcon.textContent = "🎉";
+    installPromptTitle.textContent = "المساعد موجود بالفعل!";
+    installPromptDescription.textContent = "هتلاقي أيقونته وسط تطبيقاتك، وتقدر تفتحه بسهولة في أي وقت.";
+    installNowBtn.classList.add("hidden");
+    installLaterBtn.textContent = "حلو! 🎉";
+    installLaterBtn.classList.remove("hidden");
+    requestAnimationFrame(() => installCard?.classList.add("is-installed"));
+    showInstallPrompt();
 }
 
 function showInstallPrompt() {
@@ -1474,8 +1505,11 @@ window.addEventListener("beforeinstallprompt", event => {
 
 window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
-    hideInstallPrompt();
-    installAppButton?.classList.add("hidden");
+    try {
+        localStorage.setItem(INSTALL_CONFIRMED_KEY, "true");
+    } catch {}
+    markInstallButtonAsInstalled();
+    showInstallSuccess();
 });
 
 window.addEventListener("popstate", () => {
@@ -1498,15 +1532,22 @@ window.addEventListener("popstate", () => {
 });
 
 function showInstallFallback() {
+    installPrompt.dataset.state = "fallback";
+    installCard?.classList.remove("is-installed");
+    installPromptIcon.textContent = "📱";
     installPromptTitle.textContent = "إضافة المساعد من قائمة المتصفح";
     installPromptDescription.textContent = "افتح قائمة Chrome ⋮ ثم اختار «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق». على الكمبيوتر، اختار «تثبيت المساعد» من قائمة المتصفح أو رمز التثبيت بجانب شريط العنوان.";
     installNowBtn.textContent = "تمام";
+    installNowBtn.classList.remove("hidden");
     installLaterBtn.classList.add("hidden");
     showInstallPrompt();
 }
 
 installNowBtn?.addEventListener("click", () => {
     hideInstallPrompt();
+    installPrompt.dataset.state = "";
+    installCard?.classList.remove("is-installed");
+    installPromptIcon.textContent = "📱";
     installPromptTitle.textContent = "تحب تضيف المساعد لتطبيقاتك؟";
     installPromptDescription.textContent = "هيبقى ليه أيقونة على جهازك، وتقدر تفتحه بسرعة زي أي تطبيق.";
     installNowBtn.textContent = "نعم، أضِفه";
@@ -1713,7 +1754,8 @@ globalServiceSearch.addEventListener("keydown", event => {
 globalSearchClear.addEventListener("click", () => { globalServiceSearch.value = ""; hideGlobalSearchResults(); globalSearchClear.classList.add("hidden"); globalServiceSearch.focus(); });
 installAppButton?.addEventListener("click", async () => {
     if (isAppInstalled()) {
-        installAppButton.classList.add("hidden");
+        markInstallButtonAsInstalled();
+        showInstallSuccess();
         return;
     }
 
@@ -1726,13 +1768,20 @@ installAppButton?.addEventListener("click", async () => {
     deferredInstallPrompt = null;
     try {
         promptEvent.prompt();
-        await promptEvent.userChoice;
+        const choice = await promptEvent.userChoice;
+        if (choice?.outcome === "accepted") {
+            try {
+                localStorage.setItem(INSTALL_CONFIRMED_KEY, "true");
+            } catch {}
+            markInstallButtonAsInstalled();
+            showInstallSuccess();
+        }
     } catch {
         showInstallFallback();
     }
 });
 
-if (isAppInstalled()) installAppButton?.classList.add("hidden");
+if (isAppInstalled()) markInstallButtonAsInstalled();
 document.addEventListener("pointerdown", event => {
     if (!event.target.closest(".global-search")) hideGlobalSearchResults();
 });
