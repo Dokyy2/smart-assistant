@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="styles/main.css?v=20261012-10">
-    <link rel="stylesheet" href="styles/visual-overrides.css?v=20261012-6">
+    <link rel="stylesheet" href="styles/visual-overrides.css?v=20261012-8">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
@@ -96,10 +96,16 @@
             </section>
 
             <section class="global-search" aria-label="البحث في خدمات الموقع">
-                <div class="global-search-heading-block">
-                    <h2>ابحث عن خدمة</h2>
-                    <p>اكتب أي كلمة أو جزء منها، وهتظهرلك النتائج من كل الموقع.</p>
-                </div>
+                <button id="installAppButton" class="app-install-entry" type="button" aria-label="إضافة المساعد إلى تطبيقات الهاتف">
+                    <span class="app-install-copy"><small>خليه قريب منك</small><strong>ضيف المساعد وسط تطبيقاتك</strong><span>اضغط هنا لإضافته للشاشة الرئيسية</span></span>
+                    <span class="install-apps-window" aria-hidden="true">
+                        <span class="install-apps-grid">
+                            <span class="install-app-tile">☎️</span><span class="install-app-tile">🗺️</span><span class="install-app-tile">📷</span>
+                            <span class="install-app-tile">🌤️</span><span class="install-app-tile install-assistant-tile"><img src="assets/images/assistant-logo.png" alt=""></span><span class="install-app-tile">🎵</span>
+                            <span class="install-app-tile">📝</span><span class="install-app-tile">📅</span><span class="install-app-tile">⚙️</span>
+                        </span>
+                    </span>
+                </button>
                 <p class="global-search-guidance"><strong>💡 إرشاد</strong><span>اكتب كلمة أو جزءًا منها، مثل: تأمين صحي، غدة درقية، مستشفى، تطعيمات.</span></p>
                 <label class="global-search-label" for="globalServiceSearch">البحث عن خدمة أو إجراء</label>
                 <div class="global-search-box">
@@ -279,11 +285,11 @@
     <div id="installPrompt" class="install-prompt hidden" role="dialog" aria-modal="true" aria-labelledby="installPromptTitle">
         <div class="install-card">
             <div class="install-icon" aria-hidden="true">📱</div>
-            <h2 id="installPromptTitle">أضف المساعد الذكي إلى الشاشة الرئيسية</h2>
-            <p>استخدمه بسهولة في أي وقت مثل التطبيقات.</p>
+            <h2 id="installPromptTitle">تحب تضيف المساعد لتطبيقاتك؟</h2>
+            <p id="installPromptDescription">هيبقى ليه أيقونة على جهازك، وتقدر تفتحه بسرعة زي أي تطبيق.</p>
             <div class="install-actions">
-                <button id="installNowBtn" class="install-primary" type="button">إضافة الآن</button>
-                <button id="installLaterBtn" class="install-secondary" type="button">لاحقًا</button>
+                <button id="installNowBtn" class="install-primary" type="button">نعم، أضِفه</button>
+                <button id="installLaterBtn" class="install-secondary" type="button">لا، شكرًا</button>
             </div>
         </div>
     </div>
@@ -296,6 +302,6 @@
     <script src="data/gallery.js?v=20260625-1"></script>
     <script src="data/ai-config.js?v=20260731-1"></script>
     <script src="scripts/ai-api.js?v=20260731-1"></script>
-    <script src="scripts/app.js?v=20261012-13"></script>
+    <script src="scripts/app.js?v=20261012-17"></script>
 </body>
 </html>

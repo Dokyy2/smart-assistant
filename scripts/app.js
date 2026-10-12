@@ -16,6 +16,7 @@ const menuPanel = document.getElementById("menuPanel");
 const assistantPanel = document.getElementById("assistantPanel");
 const servicesGrid = document.getElementById("servicesGrid");
 const globalServiceSearch = document.getElementById("globalServiceSearch");
+const installAppButton = document.getElementById("installAppButton");
 const globalSearchResults = document.getElementById("globalSearchResults");
 const globalSearchClear = document.getElementById("globalSearchClear");
 const chatArea = document.getElementById("chatArea");
@@ -40,6 +41,8 @@ const modalImage = document.getElementById("modalImage");
 const modalImageTitle = document.getElementById("modalImageTitle");
 const imageStage = document.getElementById("imageStage");
 const installPrompt = document.getElementById("installPrompt");
+const installPromptTitle = document.getElementById("installPromptTitle");
+const installPromptDescription = document.getElementById("installPromptDescription");
 const installNowBtn = document.getElementById("installNowBtn");
 const installLaterBtn = document.getElementById("installLaterBtn");
 const introAudioFab = document.getElementById("introAudioFab");
@@ -97,7 +100,6 @@ let introAudioPlaying = false;
 let selectedOffice = null;
 let backTransitionTimer = 0;
 
-const INSTALL_PROMPT_DELAY = 12000;
 const INTRO_AUDIO_SRC = "assets/audio/00 المقدمة.mp3";
 const STATS_START_DATE = new Date("2026-06-20T00:00:00");
 const STATS_STEP_MS = 60 * 60 * 1000;
@@ -1272,7 +1274,6 @@ function finishSplash() {
     splash.classList.add("is-closing");
     readerApp.classList.remove("is-loading");
     window.setTimeout(() => splash.classList.add("is-hidden"), 850);
-    scheduleInstallPrompt();
 }
 
 function registerServiceWorker() {
@@ -1322,16 +1323,6 @@ function initScrollMotion() {
 
 function isAppInstalled() {
     return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-}
-
-function shouldShowInstallPrompt() {
-    return Boolean(deferredInstallPrompt && !isAppInstalled());
-}
-
-function scheduleInstallPrompt() {
-    window.setTimeout(() => {
-        if (shouldShowInstallPrompt()) showInstallPrompt();
-    }, INSTALL_PROMPT_DELAY);
 }
 
 function showInstallPrompt() {
@@ -1479,12 +1470,12 @@ document.querySelectorAll(".modal-nav, .image-tools button").forEach(button => {
 window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
     deferredInstallPrompt = event;
-    if (!readerApp.classList.contains("is-loading")) scheduleInstallPrompt();
 });
 
 window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     hideInstallPrompt();
+    installAppButton?.classList.add("hidden");
 });
 
 window.addEventListener("popstate", () => {
@@ -1506,17 +1497,20 @@ window.addEventListener("popstate", () => {
     }
 });
 
-installNowBtn?.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-        hideInstallPrompt();
-        return;
-    }
+function showInstallFallback() {
+    installPromptTitle.textContent = "إضافة المساعد من قائمة المتصفح";
+    installPromptDescription.textContent = "افتح قائمة Chrome ⋮ ثم اختار «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق». على الكمبيوتر، اختار «تثبيت المساعد» من قائمة المتصفح أو رمز التثبيت بجانب شريط العنوان.";
+    installNowBtn.textContent = "تمام";
+    installLaterBtn.classList.add("hidden");
+    showInstallPrompt();
+}
 
-    const promptEvent = deferredInstallPrompt;
-    deferredInstallPrompt = null;
+installNowBtn?.addEventListener("click", () => {
     hideInstallPrompt();
-    promptEvent.prompt();
-    await promptEvent.userChoice.catch(() => null);
+    installPromptTitle.textContent = "تحب تضيف المساعد لتطبيقاتك؟";
+    installPromptDescription.textContent = "هيبقى ليه أيقونة على جهازك، وتقدر تفتحه بسرعة زي أي تطبيق.";
+    installNowBtn.textContent = "نعم، أضِفه";
+    installLaterBtn.classList.remove("hidden");
 });
 
 installLaterBtn?.addEventListener("click", () => {
@@ -1717,6 +1711,28 @@ globalServiceSearch.addEventListener("keydown", event => {
     if (event.key === "Escape") { globalServiceSearch.value = ""; hideGlobalSearchResults(); globalServiceSearch.blur(); }
 });
 globalSearchClear.addEventListener("click", () => { globalServiceSearch.value = ""; hideGlobalSearchResults(); globalSearchClear.classList.add("hidden"); globalServiceSearch.focus(); });
+installAppButton?.addEventListener("click", async () => {
+    if (isAppInstalled()) {
+        installAppButton.classList.add("hidden");
+        return;
+    }
+
+    if (!deferredInstallPrompt) {
+        showInstallFallback();
+        return;
+    }
+
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    try {
+        promptEvent.prompt();
+        await promptEvent.userChoice;
+    } catch {
+        showInstallFallback();
+    }
+});
+
+if (isAppInstalled()) installAppButton?.classList.add("hidden");
 document.addEventListener("pointerdown", event => {
     if (!event.target.closest(".global-search")) hideGlobalSearchResults();
 });
