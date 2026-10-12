@@ -24,7 +24,8 @@
     <link rel="icon" type="image/png" href="assets/images/assistant-logo.png">
     <link rel="apple-touch-icon" href="assets/images/assistant-logo.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles/main.css?v=20261012-6">
+    <link rel="stylesheet" href="styles/main.css?v=20261012-10">
+    <link rel="stylesheet" href="styles/visual-overrides.css?v=20261012-3">
 </head>
 <body>
     <div id="splash" class="splash" aria-label="شاشة بداية المساعد">
@@ -53,11 +54,7 @@
 
             <div class="toolbar-tools">
                 <button id="homeButton" class="home-button" type="button" aria-label="الرئيسية" title="الرئيسية"><span aria-hidden="true">🏠</span></button>
-                <button id="seniorModeToggle" class="senior-mode-toggle" type="button" aria-pressed="false" aria-label="تفعيل وضع كبار السن"><span>كبير</span><span class="senior-mode-mark" aria-hidden="true">A+</span></button>
-                <div class="time-widget" aria-label="الوقت والتاريخ الحالي">
-                    <strong id="clockTime">--:--</strong>
-                    <span id="clockDate">--</span>
-                </div>
+                <button id="seniorModeToggle" class="senior-mode-toggle" type="button" aria-pressed="false" aria-label="تكبير الخط"><span>تكبير</span><span class="senior-mode-mark" aria-hidden="true">A+</span></button>
             </div>
         </header>
 
@@ -67,7 +64,7 @@
                     <p class="hello">أهلاً بيك <span aria-hidden="true">✦</span></p>
                     <h2>خدماتك الصحية أقرب وأسهل</h2>
                     <p>قولنا محتاج إيه، أو اختار الخدمة المناسبة ليك. هنمشي معاك خطوة بخطوة.</p>
-                    <div class="hero-brand-showcase"><img src="assets/images/assistant-logo.png" alt=""><strong>المساعد الذكي</strong></div>
+                    <div class="hero-copy-divider" aria-hidden="true"><span></span></div>
                     <div class="hero-service-spotlight" aria-live="polite"><span>خدماتنا</span><strong id="heroServiceText">تسجيل المواليد</strong><small id="heroServiceDescription">جهّز إخطار المولود وبطاقتي الوالدين وقسيمة الزواج وصور المستندات.</small></div>
                     <div class="hero-actions">
                         <button id="heroAssistantBtn" class="hero-primary-action" type="button"><span aria-hidden="true">✦</span> اسأل المساعد</button>
@@ -85,6 +82,8 @@
                 </div>
             </section>
 
+            <div class="section-divider" aria-hidden="true"><span></span></div>
+
             <section class="smart-tools" aria-label="أدوات المساعد السريعة">
                 <div class="smart-tools-head"><span>خدمات سريعة</span><small>اختصارات توفر عليك الوقت</small></div>
                 <div class="smart-tools-grid">
@@ -95,6 +94,21 @@
                 </div>
                 <div id="personalAssistantStatus" class="personal-assistant-status hidden" aria-live="polite"></div>
             </section>
+
+            <section class="global-search" aria-label="البحث في خدمات الموقع">
+                <div class="global-search-heading-block">
+                    <h2>ابحث عن خدمة</h2>
+                    <p>اكتب اسم الخدمة أو جزءًا منه، وهتظهرلك الاختيارات المناسبة.</p>
+                </div>
+                <label class="global-search-label" for="globalServiceSearch">البحث عن خدمة أو إجراء</label>
+                <div class="global-search-box">
+                    <input id="globalServiceSearch" type="search" autocomplete="off" placeholder="مثال: تسجيل مولود أو تطعيمات">
+                    <button id="globalSearchClear" class="global-search-clear hidden" type="button" aria-label="مسح البحث">×</button>
+                </div>
+                <div id="globalSearchResults" class="global-search-results hidden" aria-live="polite"></div>
+            </section>
+
+            <div class="section-divider section-divider-soft" aria-hidden="true"><span></span></div>
 
             <section class="news-panel" aria-label="أخبار وتنبيهات">
                 <div class="news-label">تنبيهات</div>
@@ -214,12 +228,12 @@
     <div id="officeModal" class="office-modal hidden" role="dialog" aria-modal="true" aria-labelledby="officeModalName">
         <div class="office-modal-shell">
             <div class="office-modal-topbar">
-                <span>دليل مكاتب الصحة</span>
+                <span id="officeModalHeading">دليل مكاتب الصحة</span>
                 <button type="button" class="office-modal-close" data-office-modal-close aria-label="إغلاق">×</button>
             </div>
             <div class="office-modal-content">
-                <div class="office-modal-icon" aria-hidden="true">🏢</div>
-                <p class="office-modal-kicker">مكتب الصحة</p>
+                <div id="officeModalIcon" class="office-modal-icon" aria-hidden="true">🏢</div>
+                <p id="officeModalKicker" class="office-modal-kicker">مكتب الصحة</p>
                 <h2 id="officeModalName"></h2>
                 <div class="office-detail-card">
                     <span class="office-detail-label">المنطقة</span>
@@ -228,6 +242,10 @@
                 <div class="office-detail-card office-address-card">
                     <span class="office-detail-label">العنوان</span>
                     <p id="officeModalAddress"></p>
+                </div>
+                <div id="officeModalPhoneWrap" class="office-detail-card hidden">
+                    <span class="office-detail-label">التواصل</span>
+                    <a id="officeModalPhone" href="#"></a>
                 </div>
                 <a id="officeModalMap" class="office-map-button" href="#" target="_blank" rel="noopener noreferrer">
                     <span aria-hidden="true">📍</span> فتح الموقع الجغرافي
@@ -277,6 +295,6 @@
     <script src="data/gallery.js?v=20260625-1"></script>
     <script src="data/ai-config.js?v=20260731-1"></script>
     <script src="scripts/ai-api.js?v=20260731-1"></script>
-    <script src="scripts/app.js?v=20261012-6"></script>
+    <script src="scripts/app.js?v=20261012-12"></script>
 </body>
 </html>

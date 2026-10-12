@@ -8,11 +8,16 @@ const vaccinationSchedule = window.vaccinationSchedule || [];
 
 const serviceByName = new Map(services.map(service => [service.name, service]));
 const cairoHealthOfficeById = new Map();
+const cairoHospitalById = new Map();
+const globalSearchTargets = new Map();
 const splash = document.getElementById("splash");
 const readerApp = document.getElementById("readerApp");
 const menuPanel = document.getElementById("menuPanel");
 const assistantPanel = document.getElementById("assistantPanel");
 const servicesGrid = document.getElementById("servicesGrid");
+const globalServiceSearch = document.getElementById("globalServiceSearch");
+const globalSearchResults = document.getElementById("globalSearchResults");
+const globalSearchClear = document.getElementById("globalSearchClear");
 const chatArea = document.getElementById("chatArea");
 const inputGroup = document.getElementById("inputGroup");
 const userInput = document.getElementById("userInput");
@@ -45,6 +50,12 @@ const officeModalName = document.getElementById("officeModalName");
 const officeModalArea = document.getElementById("officeModalArea");
 const officeModalAddress = document.getElementById("officeModalAddress");
 const officeModalMap = document.getElementById("officeModalMap");
+const officeModalHeading = document.getElementById("officeModalHeading");
+const officeModalIcon = document.getElementById("officeModalIcon");
+const officeModalKicker = document.getElementById("officeModalKicker");
+const officeModalPhoneWrap = document.getElementById("officeModalPhoneWrap");
+const officeModalPhone = document.getElementById("officeModalPhone");
+const officeModalNote = document.querySelector(".office-modal-note");
 const officeFavoriteBtn = document.getElementById("officeFavoriteBtn");
 const vaccineModal = document.getElementById("vaccineModal");
 const vaccineModalIcon = document.getElementById("vaccineModalIcon");
@@ -77,6 +88,7 @@ let imageHistoryActive = false;
 let ignoreNextPopState = false;
 let introAudioPlaying = false;
 let selectedOffice = null;
+let backTransitionTimer = 0;
 
 const INSTALL_PROMPT_DELAY = 12000;
 const INTRO_AUDIO_SRC = "assets/audio/00 المقدمة.mp3";
@@ -125,6 +137,66 @@ function renderMainMenu() {
             `;
             servicesGrid.appendChild(button);
         });
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+}
+
+function showGlobalSearchResults(query = "") {
+    const normalizedQuery = normalize(query);
+    if (!normalizedQuery) {
+        hideGlobalSearchResults();
+        return;
+    }
+
+    const matchesQuery = value => normalize(value).includes(normalizedQuery);
+    const serviceMatches = services.filter(service => matchesQuery(`${service.name} ${service.desc} ${(service.keywords || []).join(" ")} ${String(service.msg || "").replace(/<[^>]*>/g, " ")}`));
+    const officeRecords = cairoHealthOffices.flatMap(area => area.offices.map(([name, address]) => ({ name, address, area: area.area, kind: "office" })));
+    const officeMatches = officeRecords.filter(office => matchesQuery(`${office.name} ${office.address} ${office.area}`));
+    const hospitalRecords = Object.entries(cairoHospitals).flatMap(([area, hospitals]) => hospitals.map(hospital => ({ ...hospital, area, kind: "hospital" })));
+    const hospitalMatches = hospitalRecords.filter(hospital => matchesQuery(`${hospital.name} ${hospital.address} ${hospital.area} ${hospital.category || ""}`));
+    const matchingOfficeKeys = new Set(officeMatches.map(office => `${office.area}|${office.name}`));
+    const relatedOfficeKeys = new Set();
+    const relatedOffices = hospitalMatches.flatMap(hospital => officeRecords.filter(office => {
+        const key = `${office.area}|${office.name}`;
+        if (office.area !== hospital.area || matchingOfficeKeys.has(key) || relatedOfficeKeys.has(key)) return false;
+        relatedOfficeKeys.add(key);
+        return true;
+    }).map(office => ({ ...office, relatedToHospital: hospital.name })));
+    const preferOffices = /مكتب|صحة|دمرداش/.test(normalizedQuery);
+    const searchResults = [
+        ...(preferOffices ? officeMatches : hospitalMatches),
+        ...serviceMatches,
+        ...(preferOffices ? hospitalMatches : officeMatches),
+        ...relatedOffices
+    ].slice(0, 14);
+
+    globalSearchTargets.clear();
+    const resultMarkup = searchResults.map((result, index) => {
+        const id = `result-${index}`;
+        globalSearchTargets.set(id, result);
+        const icon = result.kind === "hospital" ? "🏥" : result.kind === "office" ? "🏢" : result.icon;
+        const detail = result.kind === "hospital"
+            ? `${result.category || "مستشفى"} · منطقة ${result.area}`
+            : result.kind === "office"
+                ? `${result.relatedToHospital ? `مكتب صحة بالمنطقة، وليس بالضرورة تابعًا إداريًا لـ${result.relatedToHospital} · ` : "مكتب صحة · "}${result.area}`
+                : result.desc;
+        return `<button class="global-search-result" type="button" data-global-search-target="${id}"><span aria-hidden="true">${icon}</span><span><strong>${escapeHtml(result.name)}</strong><small>${escapeHtml(detail)}</small></span><span class="global-search-result-arrow" aria-hidden="true">‹</span></button>`;
+    }).join("");
+    globalSearchResults.innerHTML = searchResults.length
+        ? `<p class="global-search-heading">${searchResults.length} نتيجة من الموقع</p>${resultMarkup}`
+        : `<p class="global-search-empty">مفيش نتيجة مطابقة. جرّب اسم خدمة أو مكتب أو مستشفى.</p>`;
+    globalSearchResults.classList.remove("hidden");
+    globalSearchClear.classList.toggle("hidden", !globalServiceSearch.value);
+    requestAnimationFrame(() => globalSearchResults.classList.add("is-open"));
+}
+
+function hideGlobalSearchResults() {
+    globalSearchResults.classList.remove("is-open");
+    window.setTimeout(() => {
+        if (!globalSearchResults.classList.contains("is-open")) globalSearchResults.classList.add("hidden");
+    }, 260);
 }
 
 function shuffleItems(items) {
@@ -189,8 +261,8 @@ function pauseGalleryAutoScroll(delay = 3000) {
 }
 
 function renderHospitalsIntro() {
-    const areaButtons = cairoHealthOffices.map(({ area }) =>
-        `<button class="option-btn area-choice" type="button" data-medical-area="${area}">${area}</button>`
+    const areaButtons = cairoHealthOffices.map(({ area }, index) =>
+        `<button class="option-btn area-choice" type="button" data-medical-area="${area}" style="--reveal-delay:${index * 34}ms">${area}</button>`
     ).join("");
     return `
         <span class="response-title">📍 مستشفيات وجهات علاجية حسب المنطقة</span>
@@ -264,12 +336,23 @@ function getOfficeMapUrl(office) {
 
 function openOfficeModal(office) {
     if (!office || !officeModal) return;
-    selectedOffice = office;
+    const isHospital = office.kind === "hospital";
+    selectedOffice = isHospital ? null : office;
+    officeModalHeading.textContent = isHospital ? "دليل الجهات العلاجية" : "دليل مكاتب الصحة";
+    officeModalIcon.textContent = isHospital ? "🏥" : "🏢";
+    officeModalKicker.textContent = isHospital ? office.category || "جهة علاجية" : "مكتب الصحة";
     officeModalName.textContent = office.name;
     officeModalArea.textContent = office.area;
     officeModalAddress.textContent = office.address;
+    officeModalPhoneWrap.classList.toggle("hidden", !isHospital || !office.phone);
+    if (isHospital && office.phone) {
+        officeModalPhone.textContent = office.phone;
+        officeModalPhone.href = `tel:${office.phone.split(/[–-]/)[0].replace(/[^0-9+]/g, "")}`;
+    }
     officeModalMap.href = getOfficeMapUrl(office);
-    updateOfficeFavoriteButton();
+    officeFavoriteBtn.classList.toggle("hidden", isHospital);
+    officeModalNote.textContent = isHospital ? "بيانات مرجعية من دليل وزارة الصحة؛ يُرجى التأكد من الجهة قبل التوجه." : "يُفضّل التأكد من المكتب قبل التوجه إليه.";
+    if (!isHospital) updateOfficeFavoriteButton();
     if (officeModal.classList.contains("hidden")) history.pushState({ appModal: "office" }, "", location.href);
     officeModal.classList.remove("hidden");
     document.body.classList.add("office-modal-open");
@@ -436,7 +519,7 @@ function saveVaccineReminder() { const value = document.getElementById("vaccineB
 async function shareText(title, text) { try { if (navigator.share) await navigator.share({ title, text }); else if (navigator.clipboard) { await navigator.clipboard.writeText(text); return "تم نسخ النص للمشاركة."; } return "تم فتح خيارات المشاركة."; } catch { return "لم تتم المشاركة الآن."; } }
 function rememberFeedback(service, helpful) { const items = readStoredJson(STORAGE_KEYS.feedback, []); items.push({service, helpful, date:new Date().toISOString()}); localStorage.setItem(STORAGE_KEYS.feedback, JSON.stringify(items.slice(-100))); }
 function rememberMissingRequest(text) { const items = readStoredJson(STORAGE_KEYS.missingRequests, []); items.push({text:text.slice(0,180), date:new Date().toISOString()}); localStorage.setItem(STORAGE_KEYS.missingRequests, JSON.stringify(items.slice(-100))); }
-function applySeniorMode(enabled) { document.documentElement.classList.toggle("senior-mode", enabled); seniorModeToggle?.classList.toggle("is-active", enabled); seniorModeToggle?.setAttribute("aria-pressed", String(enabled)); }
+function applySeniorMode(enabled) { document.documentElement.classList.toggle("senior-mode", enabled); seniorModeToggle?.classList.toggle("is-active", enabled); seniorModeToggle?.setAttribute("aria-pressed", String(enabled)); seniorModeToggle?.setAttribute("aria-label", enabled ? "إيقاف تكبير الخط" : "تكبير الخط"); }
 function initSeniorMode() { applySeniorMode(localStorage.getItem(STORAGE_KEYS.seniorMode) === "true"); }
 function initVoiceInput() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -542,20 +625,25 @@ function renderWailyHospitals() {
     const area = window.selectedHospitalArea || "الوايلي";
     const hospitals = cairoHospitals[area] || [];
     return `<span class="response-title">📍 ${area}</span>
-        ${hospitals.length ? `<div class="hospital-scope-note">بيانات منشورة من أدلة وزارة الصحة، والمستشفى ليس بالضرورة تابعًا إداريًا لمكتب صحة المنطقة.</div>${renderHospitalList(hospitals)}<div class="hospital-source-links"><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=63" target="_blank" rel="noopener noreferrer">دليل المستشفيات العامة</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=61" target="_blank" rel="noopener noreferrer">دليل المستشفيات التخصصية</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=59" target="_blank" rel="noopener noreferrer">دليل المستشفيات التعليمية</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=66" target="_blank" rel="noopener noreferrer">دليل مستشفيات الحميات</a></div>` : `<div class="hospital-update-note"><strong>تحديث بيانات المنطقة</strong><span>لم تتوفر لدينا حاليًا بيانات مستشفيات موثقة لهذه المنطقة. سنضيفها بعد مراجعة مصدر رسمي.</span></div>`}`;
+        ${hospitals.length ? `<div class="hospital-scope-note">بيانات منشورة من أدلة وزارة الصحة، والمستشفى ليس بالضرورة تابعًا إداريًا لمكتب صحة المنطقة.</div>${renderHospitalList(hospitals, area)}<div class="hospital-source-links"><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=63" target="_blank" rel="noopener noreferrer">دليل المستشفيات العامة</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=61" target="_blank" rel="noopener noreferrer">دليل المستشفيات التخصصية</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=59" target="_blank" rel="noopener noreferrer">دليل المستشفيات التعليمية</a><a href="https://www.mohp.gov.eg/DynamicPages.aspx?page_id=66" target="_blank" rel="noopener noreferrer">دليل مستشفيات الحميات</a></div>` : `<div class="hospital-update-note"><strong>تحديث بيانات المنطقة</strong><span>لم تتوفر لدينا حاليًا بيانات مستشفيات موثقة لهذه المنطقة. سنضيفها بعد مراجعة مصدر رسمي.</span></div>`}`;
 }
 
-function renderHospitalList(items) {
+function renderHospitalList(items, area) {
+    cairoHospitalById.clear();
     return `
         <div class="hospital-list">
-            ${items.map(({ name, address, phone, category, source }) => `
-                <article class="hospital-item">
+            ${items.map((hospital, index) => {
+                const id = String(index);
+                cairoHospitalById.set(id, { ...hospital, area, kind: "hospital" });
+                const { name, address, category, source } = hospital;
+                return `
+                <article class="hospital-item" style="--reveal-delay:${index * 90}ms">
                     <div class="hospital-item-heading"><span aria-hidden="true">🏥</span><div><strong>${name}</strong><small>${category} · ${source}</small></div></div>
                     <div class="hospital-detail-field"><small>العنوان</small><span>${address}</span></div>
-                    ${phone ? `<div class="hospital-detail-field"><small>التواصل</small><a href="tel:${phone.split(/[–-]/)[0].replace(/[^0-9+]/g, "")}">${phone}</a></div>` : ""}
-                    <a class="office-map-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${address}`)}" target="_blank" rel="noopener noreferrer">فتح الموقع الجغرافي <span aria-hidden="true">📍</span></a>
+                    <button class="office-map-button hospital-detail-button" type="button" data-hospital-id="${id}">عرض التفاصيل <span aria-hidden="true">↗</span></button>
                 </article>
-            `).join("")}
+            `;
+            }).join("")}
         </div>
     `;
 }
@@ -749,19 +837,26 @@ function enterAssistantMode() {
 function backToServices(fromHistory = false) {
     window.speechSynthesis?.cancel();
     stopCurrentAudio();
-    document.body.classList.remove("assistant-open");
-    assistantPanel.classList.add("hidden");
-    menuPanel.classList.remove("hidden");
-    chatArea.innerHTML = "";
-    inputGroup.classList.add("hidden");
-    assistantInputGroup.classList.add("hidden");
-    userInput.value = "";
-    assistantUserInput.value = "";
-    menuPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (assistantHistoryActive) {
-        assistantHistoryActive = false;
-        if (!fromHistory) history.back();
-    }
+    window.clearTimeout(backTransitionTimer);
+    assistantPanel.classList.add("is-leaving");
+    backTransitionTimer = window.setTimeout(() => {
+        document.body.classList.remove("assistant-open");
+        assistantPanel.classList.remove("is-leaving");
+        assistantPanel.classList.add("hidden");
+        menuPanel.classList.remove("hidden");
+        menuPanel.classList.add("is-returning");
+        chatArea.innerHTML = "";
+        inputGroup.classList.add("hidden");
+        assistantInputGroup.classList.add("hidden");
+        userInput.value = "";
+        assistantUserInput.value = "";
+        menuPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.setTimeout(() => menuPanel.classList.remove("is-returning"), 720);
+        if (assistantHistoryActive) {
+            assistantHistoryActive = false;
+            if (!fromHistory) history.back();
+        }
+    }, 180);
 }
 
 function navigateHome() {
@@ -1073,6 +1168,7 @@ function showTinyFeedback(message, text) {
 }
 
 function updateClock() {
+    if (!clockTime || !clockDate) return;
     const now = new Date();
     clockTime.textContent = now.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
     clockDate.textContent = now.toLocaleDateString("ar-EG", {
@@ -1151,6 +1247,7 @@ function registerServiceWorker() {
 function initScrollMotion() {
     const targets = document.querySelectorAll([
         ".hero",
+        ".global-search",
         ".news-panel",
         ".audience-stats",
         ".calm-separator",
@@ -1405,6 +1502,21 @@ assistantUserInput.addEventListener("keydown", event => {
 });
 
 document.addEventListener("click", event => {
+    const globalSearchResult = event.target.closest("[data-global-search-target]");
+    if (globalSearchResult) {
+        const target = globalSearchTargets.get(globalSearchResult.dataset.globalSearchTarget);
+        globalServiceSearch.value = "";
+        globalSearchClear.classList.add("hidden");
+        hideGlobalSearchResults();
+        if (target?.kind === "hospital" || target?.kind === "office") openOfficeModal(target);
+        else if (target) selectService(target.name);
+        return;
+    }
+    const hospitalDetailButton = event.target.closest("[data-hospital-id]");
+    if (hospitalDetailButton) {
+        openOfficeModal(cairoHospitalById.get(hospitalDetailButton.dataset.hospitalId));
+        return;
+    }
     const smartTool = event.target.closest("[data-tool]");
     if (smartTool) {
         const tool = smartTool.dataset.tool;
@@ -1553,6 +1665,19 @@ document.addEventListener("click", event => {
 
 document.addEventListener("input", event => {
     if (event.target.id === "officeSearch") filterCairoHealthOffices(event.target.value);
+    if (event.target === globalServiceSearch) {
+        if (globalServiceSearch.value.trim()) showGlobalSearchResults(globalServiceSearch.value);
+        else { hideGlobalSearchResults(); globalSearchClear.classList.add("hidden"); }
+    }
+});
+
+globalServiceSearch.addEventListener("keydown", event => {
+    if (event.key === "Enter") globalSearchResults.querySelector("[data-global-search-target]")?.click();
+    if (event.key === "Escape") { globalServiceSearch.value = ""; hideGlobalSearchResults(); globalServiceSearch.blur(); }
+});
+globalSearchClear.addEventListener("click", () => { globalServiceSearch.value = ""; hideGlobalSearchResults(); globalSearchClear.classList.add("hidden"); globalServiceSearch.focus(); });
+document.addEventListener("pointerdown", event => {
+    if (!event.target.closest(".global-search")) hideGlobalSearchResults();
 });
 
 document.addEventListener("change", event => {
@@ -1761,9 +1886,7 @@ window.addEventListener("load", () => {
     renderTicker();
     renderGallery();
     initScrollMotion();
-    updateClock();
     updateAudienceStats();
-    setInterval(updateClock, 1000);
     setInterval(updateAudienceStats, 60 * 1000);
     const heroServiceText = document.getElementById("heroServiceText");
     const heroServiceDescription = document.getElementById("heroServiceDescription");
@@ -1812,7 +1935,7 @@ window.addEventListener("load", () => {
             heroServiceText.parentElement.classList.remove("is-changing");
             const readingTime = Math.min(14000, Math.max(8500, 5000 + nextSpotlight.description.length * 65));
             setTimeout(showNextSpotlight, readingTime);
-        }, 800);
+        }, 460);
     };
     setTimeout(showNextSpotlight, 9500);
     if (!history.state?.healthAssistantBase) history.pushState({ healthAssistantBase: true }, "", location.href);
